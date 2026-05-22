@@ -188,13 +188,14 @@ export default function RoomsPage() {
         return;
       }
 
-    } catch (error) {
+    } catch (error: any) {
 
       console.error(error);
 
       toast.error(
+        error?.response?.data?.detail ||
         "Failed to join room"
-      );
+);
     }
   }
 

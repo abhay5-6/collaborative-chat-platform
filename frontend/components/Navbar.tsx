@@ -9,6 +9,9 @@ import {
   useAuth
 } from "@/components/AuthProvider";
 
+import NotificationBell
+from "@/components/NotificationBell";
+
 export default function Navbar() {
 
   const router =
@@ -59,15 +62,21 @@ export default function Navbar() {
 
         {auth.isAuthenticated ? (
 
-          <button
-            onClick={handleLogout}
+          <div className="flex items-center gap-4">
 
-            className="bg-white text-black px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition"
-          >
+            <NotificationBell />
 
-            Logout
+            <button
+              onClick={handleLogout}
 
-          </button>
+              className="bg-white text-black px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition"
+            >
+
+              Logout
+
+            </button>
+
+          </div>
 
         ) : (
 
