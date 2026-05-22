@@ -1,60 +1,155 @@
 "use client";
 
 import { useState } from "react";
-import { login } from "@/lib/api/auth";
+
+import { useRouter }
+from "next/navigation";
+
+import { login }
+from "@/lib/api/auth";
+
+import {
+  useAuth
+} from "@/components/AuthProvider";
+
+import { toast }
+from "sonner";
+
+import {
+  useEffect
+} from "react";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+
+  const router = useRouter();
+
+  const [email, setEmail] =
+    useState("");
+
   const [password, setPassword] =
     useState("");
 
-  async function handleLogin() {
+  const [loading, setLoading] =
+    useState(false);
+  
+  const auth = useAuth();
+  
+
+  useEffect(() => {
+
+    if (
+      auth.isAuthenticated
+    ) {
+
+      router.push("/rooms");
+    }
+
+  }, [
+    auth.isAuthenticated,
+    router
+  ]);
+
+  
+  async function handleLogin(
+    e: React.FormEvent
+  ) {
+
+    e.preventDefault();
+
+    setLoading(true);
+
     try {
+
       const data = await login(
         email,
         password
       );
 
-      localStorage.setItem(
-        "token",
+      auth.login(
         data.access_token
       );
 
-      alert("Login successful");
+      toast.success("Login successful");
+
+      router.push("/rooms");
 
     } catch (error) {
+
       console.error(error);
-      alert("Login failed");
+
+      toast.error("Login failed");
+
+    } finally {
+
+      setLoading(false);
     }
   }
 
   return (
-    <div className="p-10 flex flex-col gap-4 max-w-md">
-      <input
-        className="border p-2"
-        placeholder="Email"
-        value={email}
-        onChange={(e) =>
-          setEmail(e.target.value)
-        }
-      />
 
-      <input
-        className="border p-2"
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) =>
-          setPassword(e.target.value)
-        }
-      />
+    <main className="min-h-screen flex items-center justify-center bg-black text-white px-6">
 
-      <button
-        className="bg-black text-white p-2"
-        onClick={handleLogin}
+      <form
+        onSubmit={handleLogin}
+        className="w-full max-w-md border border-zinc-800 rounded-2xl p-8 flex flex-col gap-5 bg-zinc-950"
       >
-        Login
-      </button>
-    </div>
+
+        <h1 className="text-3xl font-bold text-center">
+
+          Login
+
+        </h1>
+
+        <input
+          type="email"
+          placeholder="Email"
+
+          value={email}
+
+          onChange={(e) =>
+            setEmail(
+              e.target.value
+            )
+          }
+
+          className="bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-3 outline-none text-white"
+
+          required
+        />
+
+        <input
+          type="password"
+          placeholder="Password"
+
+          value={password}
+
+          onChange={(e) =>
+            setPassword(
+              e.target.value
+            )
+          }
+
+          className="bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-3 outline-none text-white"
+
+          required
+        />
+
+        <button
+          type="submit"
+
+          disabled={loading}
+
+          className="bg-white text-black rounded-lg py-3 font-semibold hover:opacity-90 transition disabled:opacity-50"
+        >
+
+          {loading
+            ? "Logging in..."
+            : "Login"}
+
+        </button>
+
+      </form>
+
+    </main>
   );
 }

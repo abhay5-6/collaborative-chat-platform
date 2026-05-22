@@ -3,6 +3,12 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
 
+from sqlalchemy import (
+    String,
+    Boolean,
+    ForeignKey
+)
+
 
 class Room(Base):
     __tablename__ = "rooms"
@@ -27,3 +33,9 @@ class Room(Base):
         Boolean,
         default=False
     )
+
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=False
+    )
+    

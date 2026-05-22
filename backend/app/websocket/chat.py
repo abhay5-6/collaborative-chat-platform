@@ -32,7 +32,11 @@ async def websocket_chat(
     )
 
     if not token:
-        await websocket.close(code=1008)
+
+        await websocket.close(
+            code=1008
+        )
+
         return
 
     async with AsyncSessionLocal() as db:
@@ -44,7 +48,11 @@ async def websocket_chat(
         )
 
         if not user:
-            await websocket.close(code=1008)
+
+            await websocket.close(
+                code=1008
+            )
+
             return
 
         await manager.connect(
@@ -53,17 +61,16 @@ async def websocket_chat(
             websocket
         )
 
-        # User joined event
+        # User joined
         await manager.broadcast(
             room_id,
             {
                 "type": "online_users",
                 "data": {
-                    "users": (
+                    "users":
                         manager.get_online_users(
                             room_id
                         )
-                    )
                 }
             }
         )
@@ -72,7 +79,13 @@ async def websocket_chat(
 
             while True:
 
-                data = await websocket.receive_json()
+                try:
+
+                    data = await websocket.receive_json()
+
+                except RuntimeError:
+
+                    break
 
                 event_type = data.get(
                     "type"
@@ -86,9 +99,8 @@ async def websocket_chat(
                         {
                             "type": "typing",
                             "data": {
-                                "username": (
+                                "username":
                                     user.username
-                                )
                             }
                         }
                     )
@@ -114,24 +126,41 @@ async def websocket_chat(
                         )
                     )
 
+                    if not saved_message:
+
+                        await websocket.send_json(
+                            {
+                                "type": "error",
+                                "data": {
+                                    "message":
+                                        "Access denied"
+                                }
+                            }
+                        )
+
+                        continue
+
                     message_payload = {
                         "type": "chat_message",
                         "data": {
-                            "id": (
-                                saved_message.id
-                            ),
-                            "user_id": user.id,
-                            "username": (
-                                user.username
-                            ),
-                            "room_id": room_id,
-                            "message": (
-                                saved_message.content
-                            ),
-                            "created_at": (
+                            "id":
+                                saved_message.id,
+
+                            "user_id":
+                                user.id,
+
+                            "username":
+                                user.username,
+
+                            "room_id":
+                                room_id,
+
+                            "message":
+                                saved_message.content,
+
+                            "created_at":
                                 saved_message.created_at
                                 .isoformat()
-                            )
                         }
                     }
 
@@ -142,23 +171,25 @@ async def websocket_chat(
 
         except WebSocketDisconnect:
 
+            pass
+
+        finally:
+
             manager.disconnect(
                 room_id,
                 user.username,
                 websocket
             )
 
-            # User left event
             await manager.broadcast(
                 room_id,
                 {
                     "type": "online_users",
                     "data": {
-                        "users": (
+                        "users":
                             manager.get_online_users(
                                 room_id
                             )
-                        )
                     }
                 }
             )

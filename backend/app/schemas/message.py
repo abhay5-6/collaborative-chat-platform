@@ -13,6 +13,7 @@ class MessageResponse(BaseModel):
     sender_id: int
     room_id: int
     created_at: datetime
+    username: str | None = None
 
     class Config:
         from_attributes = True

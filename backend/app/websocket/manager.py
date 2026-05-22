@@ -84,15 +84,30 @@ class ConnectionManager:
         ):
             return
 
+        disconnected = []
+
         for connection in (
             self.active_connections[
                 room_id
             ]
         ):
 
-            await connection.send_json(
-                message
-            )
+            try:
 
+                await connection.send_json(
+                    message
+                )
 
+            except Exception:
+
+                disconnected.append(
+                    connection
+                )
+
+        for connection in disconnected:
+
+            self.active_connections[
+                room_id
+            ].remove(connection)
+    
 manager = ConnectionManager()

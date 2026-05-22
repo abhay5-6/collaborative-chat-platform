@@ -8,10 +8,20 @@ class RoomCreate(BaseModel):
 
 
 class RoomResponse(BaseModel):
+
     id: int
+
     name: str
+
     description: str | None
+
     is_private: bool
+
+    owner_id: int
+
+    is_member: bool
+
+    role: str | None = None
 
     class Config:
         from_attributes = True

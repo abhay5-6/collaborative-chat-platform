@@ -1,9 +1,8 @@
 from sqlalchemy import (
     ForeignKey,
-    String,
-    DateTime
+    String
 )
-from datetime import datetime
+
 from sqlalchemy.orm import (
     Mapped,
     mapped_column
@@ -12,8 +11,11 @@ from sqlalchemy.orm import (
 from app.db.database import Base
 
 
-class RoomMembership(Base):
-    __tablename__ = "room_memberships"
+class RoomJoinRequest(Base):
+
+    __tablename__ = (
+        "room_join_requests"
+    )
 
     id: Mapped[int] = mapped_column(
         primary_key=True
@@ -25,15 +27,9 @@ class RoomMembership(Base):
 
     room_id: Mapped[int] = mapped_column(
         ForeignKey("rooms.id")
-    )    
-
-    role: Mapped[str] = mapped_column(
-        String(20),
-        default="member"
     )
 
-    joined_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=datetime.utcnow
+    status: Mapped[str] = mapped_column(
+        String,
+        default="pending"
     )
-    
