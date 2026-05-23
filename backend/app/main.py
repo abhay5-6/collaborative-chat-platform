@@ -17,6 +17,7 @@ from contextlib import asynccontextmanager
 
 from app.db.database import Base
 from app.core.config import BACKEND_CORS_ORIGINS
+from app.routes import collaborators
 
 
 
@@ -39,7 +40,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+app.include_router(
+    collaborators.router
+)
 
 @app.get("/")
 def root():

@@ -14,18 +14,49 @@ import {
 } from "sonner";
 
 import {
+
   approveJoinRequest,
+
   getJoinRequests,
+
   rejectJoinRequest
+
 } from "@/lib/api/notifications";
 
+import {
+
+  acceptCollaborationRequest,
+
+  getCollaborationRequests,
+
+  rejectCollaborationRequest
+
+} from "@/lib/api/collaborators";
+
+
 type JoinRequest = {
+
   request_id: number;
+
   room_id: number;
+
   room_name: string;
+
   user_id: number;
+
   username: string;
 };
+
+
+type CollaborationRequest = {
+
+  request_id: number;
+
+  sender_id: number;
+
+  username: string;
+};
+
 
 export default function NotificationBell() {
 
@@ -33,20 +64,41 @@ export default function NotificationBell() {
     useState(false);
 
   const [
-    notifications,
-    setNotifications
-  ] = useState<JoinRequest[]>(
-    []
-  );
 
-  async function fetchRequests() {
+    roomRequests,
+
+    setRoomRequests
+
+  ] = useState<JoinRequest[]>([]);
+
+  const [
+
+    collaborationRequests,
+
+    setCollaborationRequests
+
+  ] = useState<
+    CollaborationRequest[]
+  >([]);
+
+
+  async function fetchNotifications() {
 
     try {
 
-      const data =
+      const roomData =
         await getJoinRequests();
 
-      setNotifications(data);
+      setRoomRequests(
+        roomData
+      );
+
+      const collaborationData =
+        await getCollaborationRequests();
+
+      setCollaborationRequests(
+        collaborationData
+      );
 
     } catch (error) {
 
@@ -54,13 +106,15 @@ export default function NotificationBell() {
     }
   }
 
+
   useEffect(() => {
 
-    fetchRequests();
+    fetchNotifications();
 
   }, []);
 
-  async function handleApprove(
+
+  async function handleApproveRoom(
     requestId: number
   ) {
 
@@ -70,7 +124,7 @@ export default function NotificationBell() {
         requestId
       );
 
-      setNotifications(
+      setRoomRequests(
         (prev) =>
           prev.filter(
             (request) =>
@@ -93,7 +147,8 @@ export default function NotificationBell() {
     }
   }
 
-  async function handleReject(
+
+  async function handleRejectRoom(
     requestId: number
   ) {
 
@@ -103,7 +158,7 @@ export default function NotificationBell() {
         requestId
       );
 
-      setNotifications(
+      setRoomRequests(
         (prev) =>
           prev.filter(
             (request) =>
@@ -126,6 +181,82 @@ export default function NotificationBell() {
     }
   }
 
+
+  async function handleAcceptCollaboration(
+    requestId: number
+  ) {
+
+    try {
+
+      await acceptCollaborationRequest(
+        requestId
+      );
+
+      setCollaborationRequests(
+        (prev) =>
+          prev.filter(
+            (request) =>
+              request.request_id !==
+              requestId
+          )
+      );
+
+      toast.success(
+        "Collaboration accepted"
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      toast.error(
+        "Failed to accept collaboration"
+      );
+    }
+  }
+
+
+  async function handleRejectCollaboration(
+    requestId: number
+  ) {
+
+    try {
+
+      await rejectCollaborationRequest(
+        requestId
+      );
+
+      setCollaborationRequests(
+        (prev) =>
+          prev.filter(
+            (request) =>
+              request.request_id !==
+              requestId
+          )
+      );
+
+      toast.success(
+        "Collaboration rejected"
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      toast.error(
+        "Failed to reject collaboration"
+      );
+    }
+  }
+
+
+  const totalNotifications =
+
+    roomRequests.length
+    +
+    collaborationRequests.length;
+
+
   return (
 
     <div className="relative">
@@ -140,11 +271,11 @@ export default function NotificationBell() {
 
         <Bell size={22} />
 
-        {notifications.length > 0 && (
+        {totalNotifications > 0 && (
 
           <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold min-w-[20px] h-5 px-1 flex items-center justify-center rounded-full">
 
-            {notifications.length}
+            {totalNotifications}
 
           </span>
         )}
@@ -157,89 +288,180 @@ export default function NotificationBell() {
 
           <div className="p-4 border-b border-zinc-800 font-semibold text-lg">
 
-            Join Requests
+            Notifications
 
           </div>
 
-          {notifications.length === 0 ? (
+          {totalNotifications === 0 ? (
 
             <div className="p-6 text-zinc-500 text-center">
 
-              No pending requests
+              No notifications
 
             </div>
 
           ) : (
 
-            <div className="max-h-[400px] overflow-y-auto">
+            <div className="max-h-[500px] overflow-y-auto">
 
-              {notifications.map(
-                (request) => (
+              {/* ROOM REQUESTS */}
 
-                  <div
-                    key={
-                      request.request_id
-                    }
+              {roomRequests.length > 0 && (
 
-                    className="p-4 border-b border-zinc-800"
-                  >
+                <div className="border-b border-zinc-800">
 
-                    <div className="mb-3 text-sm text-zinc-300 leading-relaxed">
+                  <div className="px-4 py-3 text-sm font-semibold text-zinc-400 uppercase">
 
-                      <span className="font-semibold text-white">
-
-                        {
-                          request.username
-                        }
-
-                      </span>{" "}
-
-                      requested access to{" "}
-
-                      <span className="font-semibold text-white">
-
-                        {
-                          request.room_name
-                        }
-
-                      </span>
-
-                    </div>
-
-                    <div className="flex gap-2">
-
-                      <button
-                        onClick={() =>
-                          handleApprove(
-                            request.request_id
-                          )
-                        }
-
-                        className="flex-1 bg-green-600 hover:bg-green-700 transition rounded-lg py-2 font-semibold"
-                      >
-
-                        Approve
-
-                      </button>
-
-                      <button
-                        onClick={() =>
-                          handleReject(
-                            request.request_id
-                          )
-                        }
-
-                        className="flex-1 bg-red-600 hover:bg-red-700 transition rounded-lg py-2 font-semibold"
-                      >
-
-                        Reject
-
-                      </button>
-
-                    </div>
+                    Room Requests
 
                   </div>
-                )
+
+                  {roomRequests.map(
+                    (request) => (
+
+                      <div
+                        key={
+                          request.request_id
+                        }
+
+                        className="p-4 border-t border-zinc-800"
+                      >
+
+                        <div className="mb-3 text-sm text-zinc-300 leading-relaxed">
+
+                          <span className="font-semibold text-white">
+
+                            {
+                              request.username
+                            }
+
+                          </span>{" "}
+
+                          requested access to{" "}
+
+                          <span className="font-semibold text-white">
+
+                            {
+                              request.room_name
+                            }
+
+                          </span>
+
+                        </div>
+
+                        <div className="flex gap-2">
+
+                          <button
+                            onClick={() =>
+                              handleApproveRoom(
+                                request.request_id
+                              )
+                            }
+
+                            className="flex-1 bg-green-600 hover:bg-green-700 transition rounded-lg py-2 font-semibold"
+                          >
+
+                            Approve
+
+                          </button>
+
+                          <button
+                            onClick={() =>
+                              handleRejectRoom(
+                                request.request_id
+                              )
+                            }
+
+                            className="flex-1 bg-red-600 hover:bg-red-700 transition rounded-lg py-2 font-semibold"
+                          >
+
+                            Reject
+
+                          </button>
+
+                        </div>
+
+                      </div>
+                    )
+                  )}
+
+                </div>
+              )}
+
+              {/* COLLABORATION REQUESTS */}
+
+              {collaborationRequests.length > 0 && (
+
+                <div>
+
+                  <div className="px-4 py-3 text-sm font-semibold text-zinc-400 uppercase">
+
+                    Collaboration Requests
+
+                  </div>
+
+                  {collaborationRequests.map(
+                    (request) => (
+
+                      <div
+                        key={
+                          request.request_id
+                        }
+
+                        className="p-4 border-t border-zinc-800"
+                      >
+
+                        <div className="mb-3 text-sm text-zinc-300 leading-relaxed">
+
+                          <span className="font-semibold text-white">
+
+                            {
+                              request.username
+                            }
+
+                          </span>{" "}
+
+                          wants to collaborate with you
+
+                        </div>
+
+                        <div className="flex gap-2">
+
+                          <button
+                            onClick={() =>
+                              handleAcceptCollaboration(
+                                request.request_id
+                              )
+                            }
+
+                            className="flex-1 bg-green-600 hover:bg-green-700 transition rounded-lg py-2 font-semibold"
+                          >
+
+                            Accept
+
+                          </button>
+
+                          <button
+                            onClick={() =>
+                              handleRejectCollaboration(
+                                request.request_id
+                              )
+                            }
+
+                            className="flex-1 bg-red-600 hover:bg-red-700 transition rounded-lg py-2 font-semibold"
+                          >
+
+                            Reject
+
+                          </button>
+
+                        </div>
+
+                      </div>
+                    )
+                  )}
+
+                </div>
               )}
 
             </div>
