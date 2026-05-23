@@ -1,13 +1,23 @@
 from unittest import result
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException
+)
+
+from sqlalchemy.ext.asyncio import (
+    AsyncSession
+)
 
 from app.db.session import get_db
+
 from app.schemas.room import (
     RoomCreate,
-    RoomResponse
+    RoomResponse,
+    RoomMemberResponse
 )
+
 from app.services.room_service import (
     create_room,
     get_rooms,
@@ -18,7 +28,18 @@ from app.services.room_service import (
     approve_join_request,
     reject_join_request
 )
-from app.core.dependencies import get_current_user
+
+from app.services.member_service import (
+    get_room_members,
+    promote_member,
+    demote_member,
+    remove_member
+)
+
+from app.core.dependencies import (
+    get_current_user
+)
+
 from app.models.user import User
 
 router = APIRouter(
@@ -36,6 +57,7 @@ async def create_new_room(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+
     created_room = await create_room(
         db,
         room,
@@ -43,6 +65,7 @@ async def create_new_room(
     )
 
     if not created_room:
+
         raise HTTPException(
             status_code=400,
             detail="Room already exists"
@@ -65,16 +88,26 @@ async def create_new_room(
 )
 async def list_rooms(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(
+        get_current_user
+    )
 ):
-    return await get_rooms(db,
-                           current_user)
+
+    return await get_rooms(
+        db,
+        current_user
+    )
 
 
 @router.post("/{room_id}/join")
 async def join_existing_room(
+
     room_id: int,
-    db: AsyncSession = Depends(get_db),
+
+    db: AsyncSession = Depends(
+        get_db
+    ),
+
     current_user: User = Depends(
         get_current_user
     )
@@ -128,12 +161,15 @@ async def join_existing_room(
         detail="Join failed"
     )
 
+
 @router.post("/{room_id}/leave")
 async def leave_existing_room(
 
     room_id: int,
 
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(
+        get_db
+    ),
 
     current_user: User = Depends(
         get_current_user
@@ -164,9 +200,7 @@ async def leave_existing_room(
 
         raise HTTPException(
             status_code=403,
-            detail=(
-                "Owner cannot leave room"
-            )
+            detail="Owner cannot leave room"
         )
 
     return {
@@ -180,7 +214,9 @@ async def delete_existing_room(
 
     room_id: int,
 
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(
+        get_db
+    ),
 
     current_user: User = Depends(
         get_current_user
@@ -204,15 +240,14 @@ async def delete_existing_room(
 
         raise HTTPException(
             status_code=403,
-            detail=(
-                "Only owner can delete room"
-            )
+            detail="Only owner can delete room"
         )
 
     return {
         "message":
             "Room deleted successfully"
     }
+
 
 @router.get("/join-requests")
 async def list_pending_requests(
@@ -328,4 +363,191 @@ async def reject_request(
     return {
         "message":
             "Request rejected"
+    }
+
+
+# =========================
+# MEMBERS / HIERARCHY
+# =========================
+
+@router.get(
+    "/{room_id}/members",
+    response_model=list[
+        RoomMemberResponse
+    ]
+)
+async def list_room_members(
+
+    room_id: int,
+
+    db: AsyncSession = Depends(
+        get_db
+    ),
+
+    current_user: User = Depends(
+        get_current_user
+    )
+):
+
+    members = await get_room_members(
+        db,
+        room_id
+    )
+
+    return members
+
+
+@router.post(
+    "/{room_id}/promote/{user_id}"
+)
+async def promote_room_member(
+
+    room_id: int,
+
+    user_id: int,
+
+    db: AsyncSession = Depends(
+        get_db
+    ),
+
+    current_user: User = Depends(
+        get_current_user
+    )
+):
+
+    result = await promote_member(
+        db,
+        room_id,
+        user_id,
+        current_user
+    )
+
+    if result == "not_owner":
+
+        raise HTTPException(
+            status_code=403,
+            detail="Only owner can promote"
+        )
+
+    if result == "member_not_found":
+
+        raise HTTPException(
+            status_code=404,
+            detail="Member not found"
+        )
+
+    if result == "cannot_modify_owner":
+
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot modify owner"
+        )
+
+    return {
+        "message":
+            "Member promoted"
+    }
+
+
+@router.post(
+    "/{room_id}/demote/{user_id}"
+)
+async def demote_room_member(
+
+    room_id: int,
+
+    user_id: int,
+
+    db: AsyncSession = Depends(
+        get_db
+    ),
+
+    current_user: User = Depends(
+        get_current_user
+    )
+):
+
+    result = await demote_member(
+        db,
+        room_id,
+        user_id,
+        current_user
+    )
+
+    if result == "not_owner":
+
+        raise HTTPException(
+            status_code=403,
+            detail="Only owner can demote"
+        )
+
+    if result == "member_not_found":
+
+        raise HTTPException(
+            status_code=404,
+            detail="Member not found"
+        )
+
+    if result == "cannot_modify_owner":
+
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot modify owner"
+        )
+
+    return {
+        "message":
+            "Member demoted"
+    }
+
+
+@router.post(
+    "/{room_id}/remove/{user_id}"
+)
+async def remove_room_member(
+
+    room_id: int,
+
+    user_id: int,
+
+    db: AsyncSession = Depends(
+        get_db
+    ),
+
+    current_user: User = Depends(
+        get_current_user
+    )
+):
+
+    result = await remove_member(
+        db,
+        room_id,
+        user_id,
+        current_user
+    )
+
+    if result == "not_authorized":
+
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized"
+        )
+
+    if result == "member_not_found":
+
+        raise HTTPException(
+            status_code=404,
+            detail="Member not found"
+        )
+
+    if result == "cannot_remove_owner":
+
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot remove owner"
+        )
+
+    return {
+        "message":
+            "Member removed"
     }

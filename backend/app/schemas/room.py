@@ -25,3 +25,11 @@ class RoomResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class RoomMemberResponse(BaseModel):
+
+    user_id: int
+
+    username: str
+
+    role: str
