@@ -1,4 +1,8 @@
-
+from app.utils.permissions import (
+    get_membership,
+    is_room_owner,
+    is_room_admin
+)
 
 from fastapi import (
     APIRouter,
@@ -445,6 +449,12 @@ async def promote_room_member(
         )
 
     if result == "cannot_modify_owner":
+        if result == "already_admin":
+
+            raise HTTPException(
+                status_code=400,
+                detail="User is already admin"
+            )
 
         raise HTTPException(
             status_code=400,
@@ -502,6 +512,20 @@ async def demote_room_member(
             status_code=400,
             detail="Cannot modify owner"
         )
+    
+    if result == "cannot_demote_self":
+
+        raise HTTPException(
+            status_code=400,
+            detail="Owner cannot demote self"
+        )
+    
+    if result == "already_member":
+
+        raise HTTPException(
+            status_code=400,
+            detail="User is already member"
+        )
 
     return {
         "message":
@@ -549,6 +573,18 @@ async def remove_room_member(
         )
 
     if result == "cannot_remove_owner":
+        if result == "cannot_remove_self":
+
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot remove yourself"
+            )
+        if result == "cannot_remove_admin":
+
+            raise HTTPException(
+                status_code=403,
+                detail="Admin cannot remove another admin"
+            )
 
         raise HTTPException(
             status_code=400,

@@ -10,6 +10,11 @@ from app.models.membership import (
 from app.models.user import User
 
 from app.models.room import Room
+from app.utils.permissions import (
+    get_membership,
+    is_room_owner,
+    is_room_admin
+)
 
 
 async def get_room_members(
@@ -104,44 +109,26 @@ async def promote_member(
     current_user: User
 ):
 
-    owner_result = await db.execute(
-
-        select(RoomMembership).where(
-
-            RoomMembership.room_id
-                == room_id,
-
-            RoomMembership.user_id
-                == current_user.id
+    current_membership = (
+        await get_membership(
+            db,
+            room_id,
+            current_user.id
         )
     )
 
-    owner_membership = (
-        owner_result.scalar()
-    )
-
-    if (
-        not owner_membership
-        or owner_membership.role
-            != "owner"
+    if not is_room_owner(
+        current_membership
     ):
 
         return "not_owner"
 
-    target_result = await db.execute(
-
-        select(RoomMembership).where(
-
-            RoomMembership.room_id
-                == room_id,
-
-            RoomMembership.user_id
-                == target_user_id
-        )
-    )
-
     target_membership = (
-        target_result.scalar()
+        await get_membership(
+            db,
+            room_id,
+            target_user_id
+        )
     )
 
     if not target_membership:
@@ -152,12 +139,15 @@ async def promote_member(
 
         return "cannot_modify_owner"
 
+    if target_membership.role == "admin":
+
+        return "already_admin"
+
     target_membership.role = "admin"
 
     await db.commit()
 
     return "promoted"
-
 
 async def demote_member(
     db: AsyncSession,
@@ -166,44 +156,30 @@ async def demote_member(
     current_user: User
 ):
 
-    owner_result = await db.execute(
-
-        select(RoomMembership).where(
-
-            RoomMembership.room_id
-                == room_id,
-
-            RoomMembership.user_id
-                == current_user.id
+    current_membership = (
+        await get_membership(
+            db,
+            room_id,
+            current_user.id
         )
     )
 
-    owner_membership = (
-        owner_result.scalar()
-    )
-
-    if (
-        not owner_membership
-        or owner_membership.role
-            != "owner"
+    if not is_room_owner(
+        current_membership
     ):
 
         return "not_owner"
 
-    target_result = await db.execute(
+    if target_user_id == current_user.id:
 
-        select(RoomMembership).where(
-
-            RoomMembership.room_id
-                == room_id,
-
-            RoomMembership.user_id
-                == target_user_id
-        )
-    )
+        return "cannot_demote_self"
 
     target_membership = (
-        target_result.scalar()
+        await get_membership(
+            db,
+            room_id,
+            target_user_id
+        )
     )
 
     if not target_membership:
@@ -214,12 +190,15 @@ async def demote_member(
 
         return "cannot_modify_owner"
 
+    if target_membership.role == "member":
+
+        return "already_member"
+
     target_membership.role = "member"
 
     await db.commit()
 
     return "demoted"
-
 
 async def remove_member(
     db: AsyncSession,
@@ -228,47 +207,30 @@ async def remove_member(
     current_user: User
 ):
 
-    manager_result = await db.execute(
-
-        select(RoomMembership).where(
-
-            RoomMembership.room_id
-                == room_id,
-
-            RoomMembership.user_id
-                == current_user.id
+    current_membership = (
+        await get_membership(
+            db,
+            room_id,
+            current_user.id
         )
     )
 
-    manager_membership = (
-        manager_result.scalar()
-    )
-
-    if (
-        not manager_membership
-        or manager_membership.role
-            not in [
-                "owner",
-                "admin"
-            ]
+    if not is_room_admin(
+        current_membership
     ):
 
         return "not_authorized"
 
-    target_result = await db.execute(
+    if target_user_id == current_user.id:
 
-        select(RoomMembership).where(
-
-            RoomMembership.room_id
-                == room_id,
-
-            RoomMembership.user_id
-                == target_user_id
-        )
-    )
+        return "cannot_remove_self"
 
     target_membership = (
-        target_result.scalar()
+        await get_membership(
+            db,
+            room_id,
+            target_user_id
+        )
     )
 
     if not target_membership:
@@ -278,6 +240,13 @@ async def remove_member(
     if target_membership.role == "owner":
 
         return "cannot_remove_owner"
+
+    if (
+        current_membership.role == "admin"
+        and target_membership.role == "admin"
+    ):
+
+        return "cannot_remove_admin"
 
     await db.delete(
         target_membership
