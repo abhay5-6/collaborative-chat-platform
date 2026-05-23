@@ -1,5 +1,31 @@
 import api from "./client";
 
+
+export async function register(
+
+  username: string,
+
+  email: string,
+
+  password: string
+) {
+
+  const response =
+    await api.post(
+
+      "/auth/register",
+
+      {
+        username,
+        email,
+        password
+      }
+    );
+
+  return response.data;
+}
+
+
 export async function login(
   email: string,
   password: string

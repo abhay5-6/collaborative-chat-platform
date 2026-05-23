@@ -37,6 +37,11 @@ import {
   removeMember
 } from "@/lib/api/rooms";
 
+import {
+  sendCollaborationRequest,
+  getCollaborators,
+} from "@/lib/api/collaborators";
+
 type Message = {
   id: number;
   message?: string;
@@ -100,6 +105,9 @@ export default function RoomPage() {
 
   const [currentUsername, setCurrentUsername] =
     useState<string | null>(null);
+
+  const [collaborators, setCollaborators] =
+    useState<number[]>([]);
 
   const [
     connectionStatus,
@@ -208,6 +216,32 @@ export default function RoomPage() {
     }
 
     loadCurrentUser();
+
+  }, []);
+
+  useEffect(() => {
+
+    async function loadCollaborators() {
+
+      try {
+
+        const data =
+          await getCollaborators();
+
+        setCollaborators(
+
+          data.map(
+            (user: any) => user.id
+          )
+        );
+
+      } catch (error) {
+
+        console.error(error);
+      }
+    }
+
+    loadCollaborators();
 
   }, []);
 
@@ -616,6 +650,31 @@ export default function RoomPage() {
     }
   }
 
+  async function handleCollaborate(
+    userId: number
+  ) {
+
+    try {
+
+      await sendCollaborationRequest(
+        userId
+      );
+
+      toast.success(
+        "Collaboration request sent"
+      );
+
+    } catch (error: any) {
+
+      toast.error(
+
+        error?.response?.data?.detail ||
+
+        "Failed to send request"
+      );
+    }
+  }
+
   if (loading) {
 
     return (
@@ -839,6 +898,27 @@ export default function RoomPage() {
               >
 
                 <div className="flex items-center justify-between mb-2">
+                  {member.username !==
+                    currentUsername &&
+
+                  !collaborators.includes(
+                      member.user_id
+                    ) && (
+
+                    <button
+                      onClick={() =>
+                        handleCollaborate(
+                          member.user_id
+                        )
+                      }
+
+                      className="mb-3 w-full bg-zinc-800 hover:bg-zinc-700 transition rounded-lg py-2 text-sm font-medium"
+                    >
+
+                      Collaborate
+
+                    </button>
+                  )}
 
                   <div>
 

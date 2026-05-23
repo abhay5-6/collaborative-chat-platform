@@ -8,6 +8,9 @@ import {
   useEffect
 } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import {
+  register
+} from "@/lib/api/auth";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -32,24 +35,11 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "${process.env.NEXT_PUBLIC_API_URL}/auth/register",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            username,
-            email,
-            password,
-          }),
-        }
+      await register(
+        username,
+        email,
+        password
       );
-
-      if (!response.ok) {
-        throw new Error("Registration failed");
-      }
 
       toast.success("Account created successfully");
 
