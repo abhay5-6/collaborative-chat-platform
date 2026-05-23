@@ -7,6 +7,13 @@ export function createChatSocket(
       "token"
     );
 
+  if (!token) {
+
+    throw new Error(
+      "No auth token found"
+    );
+  }
+
   return new WebSocket(
 
     `${process.env

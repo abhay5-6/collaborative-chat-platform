@@ -14,8 +14,51 @@ from app.models.room import Room
 
 async def get_room_members(
     db: AsyncSession,
-    room_id: int
+    room_id: int,
+    current_user: User
 ):
+
+    room_result = await db.execute(
+
+        select(Room).where(
+            Room.id == room_id
+        )
+    )
+
+    room = room_result.scalar()
+
+    if not room:
+
+        return None
+
+    # PUBLIC ROOM
+
+    if not room.is_private:
+
+        allowed = True
+
+    else:
+
+        membership_check = await db.execute(
+
+            select(RoomMembership).where(
+
+                RoomMembership.room_id
+                    == room_id,
+
+                RoomMembership.user_id
+                    == current_user.id
+            )
+        )
+
+        allowed = (
+            membership_check.scalar()
+            is not None
+        )
+
+    if not allowed:
+
+        return None
 
     result = await db.execute(
 
@@ -53,7 +96,6 @@ async def get_room_members(
         })
 
     return formatted_members
-
 
 async def promote_member(
     db: AsyncSession,

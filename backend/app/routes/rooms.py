@@ -1,4 +1,4 @@
-from unittest import result
+
 
 from fastapi import (
     APIRouter,
@@ -391,8 +391,16 @@ async def list_room_members(
 
     members = await get_room_members(
         db,
-        room_id
+        room_id,
+        current_user
     )
+
+    if members is None:
+
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied"
+        )
 
     return members
 

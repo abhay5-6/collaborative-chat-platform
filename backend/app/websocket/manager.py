@@ -53,13 +53,43 @@ class ConnectionManager:
         websocket: WebSocket
     ):
 
-        self.active_connections[
-            room_id
-        ].remove(websocket)
+        if room_id in (
+            self.active_connections
+        ):
 
-        self.online_users[
-            room_id
-        ].discard(username)
+            if websocket in (
+                self.active_connections[
+                    room_id
+                ]
+            ):
+
+                self.active_connections[
+                    room_id
+                ].remove(websocket)
+
+            if not self.active_connections[
+                room_id
+            ]:
+
+                del self.active_connections[
+                    room_id
+                ]
+
+        if room_id in (
+            self.online_users
+        ):
+
+            self.online_users[
+                room_id
+            ].discard(username)
+
+            if not self.online_users[
+                room_id
+            ]:
+
+                del self.online_users[
+                    room_id
+                ]
 
     def get_online_users(
         self,
@@ -109,5 +139,13 @@ class ConnectionManager:
             self.active_connections[
                 room_id
             ].remove(connection)
-    
+
+            if not self.active_connections[
+                room_id
+            ]:
+
+                del self.active_connections[
+                    room_id
+                ]
+                
 manager = ConnectionManager()
