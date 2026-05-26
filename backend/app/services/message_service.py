@@ -5,7 +5,6 @@ from app.models.message import Message
 from app.models.membership import RoomMembership
 from app.models.user import User
 from app.models.room import Room
-
 from app.schemas.message import MessageCreate
 
 
@@ -71,7 +70,7 @@ async def send_message(
     await db.commit()
 
     await db.refresh(message)
-
+    
     return message
 
 
@@ -158,5 +157,7 @@ async def create_realtime_message(
     await db.commit()
 
     await db.refresh(message)
+
+ 
 
     return message

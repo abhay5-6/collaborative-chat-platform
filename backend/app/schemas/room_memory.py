@@ -10,6 +10,10 @@ class RoomMemoryCreate(
 
     memory_type: str = "note"
 
+    importance_score: int = 1
+    
+    tags: list[str] = []
+
 
 class RoomMemoryResponse(
     BaseModel

@@ -11,9 +11,10 @@ from app.db.database import Base
 from app.core.config import BACKEND_CORS_ORIGINS
 from app.routes import collaborators
 from app.models.room_memory import RoomMemory
-from app.routes.memories import (
-    router as memories_router
-)
+from app.routes.memories import router as memories_router
+from app.routes.ai_summary import router as ai_summary_router
+from app.routes.ai_graph import router as ai_graph_router
+
 
 
 @asynccontextmanager
@@ -36,6 +37,10 @@ app.include_router(messages_router)
 app.include_router(websocket_router)
 app.include_router(collaborators.router)
 app.include_router(memories_router)
+app.include_router(ai_summary_router)
+app.include_router(
+    ai_graph_router,
+)
 
 @app.get("/")
 def root():

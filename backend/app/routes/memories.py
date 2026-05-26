@@ -24,6 +24,13 @@ from app.core.dependencies import (
 
 from app.models.user import User
 
+from app.services.ai.retrieval_service import (
+    search_room_memories
+)
+
+from app.services.ai.ollama_service import (
+    generate_room_answer
+)
 
 router = APIRouter(
     prefix="/rooms",
@@ -53,8 +60,52 @@ async def add_room_memory(
 
             content=memory.content,
 
-            memory_type=memory.memory_type
+            memory_type=memory.memory_type,
+            importance_score=memory.importance_score,
+            tags=memory.tags,
         )
     )
 
     return created_memory
+
+@router.get(
+    "/{room_id}/memories/search"
+)
+async def semantic_memory_search(
+    room_id: int,
+    query: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+
+    memories = await (
+        search_room_memories(
+            db,
+            room_id,
+            query
+        )
+    )
+
+    return memories
+
+@router.get(
+    "/{room_id}/ai"
+)
+async def room_ai_query(
+    room_id: int,
+    query: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+
+    answer = await (
+        generate_room_answer(
+            db,
+            room_id,
+            query
+        )
+    )
+
+    return {
+        "answer": answer
+    }

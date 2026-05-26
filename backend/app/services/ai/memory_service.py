@@ -1,25 +1,36 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import (
+    AsyncSession
+)
 
 from app.models.room_memory import (
     RoomMemory
 )
 
-from app.services.ai.embedding_service import (
-    generate_embedding
-)
-
 
 async def create_room_memory(
+
     db: AsyncSession,
+
     room_id: int,
+
     created_by: int,
+
     content: str,
-    memory_type: str = "note"
+
+    embedding: list[float],
+
+    memory_type: str = "note",
+
+    importance_score: int = 1,
+
+    tags: list[str] | None = None,
+
+    domain: str = "general",
 ):
 
-    embedding = generate_embedding(
-        content
-    )
+    if tags is None:
+
+        tags = []
 
     memory = RoomMemory(
 
@@ -31,7 +42,15 @@ async def create_room_memory(
 
         memory_type=memory_type,
 
-        embedding=embedding
+        importance_score=importance_score,
+
+        access_count=0,
+
+        tags=tags,
+
+        embedding=embedding,
+
+        domain=domain,
     )
 
     db.add(memory)

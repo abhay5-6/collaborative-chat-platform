@@ -17,6 +17,11 @@ from app.db.session import (
 from app.services.message_service import (
     create_realtime_message
 )
+import asyncio
+
+from app.services.ai.auto_memory_service import (
+    process_memory_background
+)
 
 router = APIRouter()
 
@@ -167,6 +172,14 @@ async def websocket_chat(
                     await manager.broadcast(
                         room_id,
                         message_payload
+                    )
+                    # Process AI memory in background
+                    asyncio.create_task(
+                        process_memory_background(
+                            room_id,
+                            user.id,
+                            content
+                        )
                     )
 
         except WebSocketDisconnect:
