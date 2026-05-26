@@ -2,8 +2,16 @@
 
 import Link from "next/link";
 
-import { useRouter }
-from "next/navigation";
+import {
+  useRouter,
+  usePathname,
+} from "next/navigation";
+
+import {
+  BrainCircuit,
+  LayoutGrid,
+  LogOut,
+} from "lucide-react";
 
 import {
   useAuth
@@ -12,13 +20,18 @@ import {
 import NotificationBell
 from "@/components/NotificationBell";
 
+
 export default function Navbar() {
 
   const router =
     useRouter();
 
+  const pathname =
+    usePathname();
+
   const auth =
     useAuth();
+
 
   function handleLogout() {
 
@@ -29,79 +42,269 @@ export default function Navbar() {
     router.refresh();
   }
 
+
+  function isActive(
+    path: string
+  ) {
+
+    return pathname.startsWith(
+      path
+    );
+  }
+
+
   return (
 
-    <nav className="w-full border-b border-zinc-800 bg-black px-6 py-4 flex items-center justify-between">
+    <nav className="
+      sticky
+      top-0
+      z-50
+      w-full
+      border-b
+      border-neutral-800
+      bg-black/80
+      backdrop-blur-xl
+    ">
 
-      <div className="flex items-center gap-6">
+      <div className="
+        max-w-7xl
+        mx-auto
+        px-6
+        py-4
+        flex
+        items-center
+        justify-between
+      ">
 
-        <Link
-          href="/"
-          className="text-2xl font-bold hover:opacity-80 transition"
-        >
+        {/* LEFT */}
 
-          Rework
-
-        </Link>
-
-        {auth.isAuthenticated && (
+        <div className="
+          flex
+          items-center
+          gap-10
+        ">
 
           <Link
-            href="/rooms"
-            className="text-zinc-300 hover:text-white transition"
+            href="/"
+            className="
+              flex
+              items-center
+              gap-3
+              group
+            "
           >
 
-            Rooms
+            <div className="
+              h-10
+              w-10
+              rounded-2xl
+              bg-white
+              text-black
+              flex
+              items-center
+              justify-center
+              font-bold
+              shadow-lg
+              group-hover:scale-105
+              transition
+            ">
+
+              <BrainCircuit
+                size={20}
+              />
+
+            </div>
+
+            <div>
+
+              <div className="
+                text-xl
+                font-semibold
+                tracking-tight
+                text-white
+              ">
+
+                Rework
+
+              </div>
+
+              <div className="
+                text-[11px]
+                uppercase
+                tracking-[0.2em]
+                text-neutral-500
+              ">
+
+                Cognitive Workspace
+
+              </div>
+
+            </div>
 
           </Link>
-        )}
 
-      </div>
 
-      <div>
+          {auth.isAuthenticated && (
 
-        {auth.isAuthenticated ? (
+            <div className="
+              flex
+              items-center
+              gap-2
+            ">
 
-          <div className="flex items-center gap-4">
+              <Link
+                href="/rooms"
+                className={`
+                  flex
+                  items-center
+                  gap-2
+                  px-4
+                  py-2
+                  rounded-xl
+                  text-sm
+                  transition
 
-            <NotificationBell />
+                  ${isActive("/rooms")
+                    ? `
+                      bg-white
+                      text-black
+                    `
+                    : `
+                      text-neutral-400
+                      hover:text-white
+                      hover:bg-neutral-900
+                    `
+                  }
+                `}
+              >
 
-            <button
-              onClick={handleLogout}
+                <LayoutGrid
+                  size={16}
+                />
 
-              className="bg-white text-black px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition"
-            >
+                Rooms
 
-              Logout
+              </Link>
 
-            </button>
+            </div>
+          )}
 
-          </div>
+        </div>
 
-        ) : (
 
-          <div className="flex gap-3">
+        {/* RIGHT */}
 
-            <Link
-              href="/login"
-              className="text-zinc-300 hover:text-white transition"
-            >
+        <div className="
+          flex
+          items-center
+          gap-4
+        ">
 
-              Login
+          {auth.isAuthenticated ? (
 
-            </Link>
+            <>
 
-            <Link
-              href="/register"
-              className="bg-white text-black px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition"
-            >
+              <div className="
+                hidden
+                md:flex
+                items-center
+                gap-2
+                px-3
+                py-2
+                rounded-xl
+                border
+                border-neutral-800
+                bg-neutral-950
+                text-xs
+                text-neutral-400
+              ">
 
-              Register
+                AI Memory Active
 
-            </Link>
+              </div>
 
-          </div>
-        )}
+
+              <NotificationBell />
+
+
+              <button
+                onClick={
+                  handleLogout
+                }
+                className="
+                  flex
+                  items-center
+                  gap-2
+                  px-4
+                  py-2
+                  rounded-xl
+                  bg-white
+                  text-black
+                  font-medium
+                  hover:scale-105
+                  transition
+                "
+              >
+
+                <LogOut
+                  size={16}
+                />
+
+                Logout
+
+              </button>
+
+            </>
+
+          ) : (
+
+            <div className="
+              flex
+              items-center
+              gap-3
+            ">
+
+              <Link
+                href="/login"
+                className="
+                  px-4
+                  py-2
+                  rounded-xl
+                  text-neutral-400
+                  hover:text-white
+                  hover:bg-neutral-900
+                  transition
+                "
+              >
+
+                Login
+
+              </Link>
+
+
+              <Link
+                href="/register"
+                className="
+                  px-5
+                  py-2.5
+                  rounded-xl
+                  bg-white
+                  text-black
+                  font-semibold
+                  hover:scale-105
+                  transition
+                  shadow-lg
+                "
+              >
+
+                Register
+
+              </Link>
+
+            </div>
+          )}
+
+        </div>
 
       </div>
 

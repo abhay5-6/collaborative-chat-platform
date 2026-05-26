@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import LoadingSpinner
 from "@/components/LoadingSpinner";
 
@@ -13,6 +15,13 @@ import {
   useParams,
   useRouter
 } from "next/navigation";
+
+import {
+  Network,
+  Wifi,
+  Users,
+  SendHorizonal,
+} from "lucide-react";
 
 import { toast }
 from "sonner";
@@ -42,6 +51,7 @@ import {
   getCollaborators,
 } from "@/lib/api/collaborators";
 
+
 type Message = {
   id: number;
   message?: string;
@@ -55,6 +65,7 @@ type RoomMember = {
   username: string;
   role: string;
 };
+
 
 function formatTime(
   timestamp?: string
@@ -74,6 +85,7 @@ function formatTime(
     }
   );
 }
+
 
 export default function RoomPage() {
 
@@ -137,6 +149,7 @@ export default function RoomPage() {
       null
     );
 
+
   useEffect(() => {
 
     if (
@@ -148,7 +161,7 @@ export default function RoomPage() {
 
   }, [router]);
 
-  // Load messages
+
   useEffect(() => {
 
     async function loadMessages() {
@@ -196,6 +209,7 @@ export default function RoomPage() {
 
   }, [roomId, router]);
 
+
   useEffect(() => {
 
     async function loadCurrentUser() {
@@ -218,6 +232,7 @@ export default function RoomPage() {
     loadCurrentUser();
 
   }, []);
+
 
   useEffect(() => {
 
@@ -245,6 +260,7 @@ export default function RoomPage() {
 
   }, []);
 
+
   useEffect(() => {
 
     async function loadMembers() {
@@ -257,7 +273,6 @@ export default function RoomPage() {
           );
 
         setMembers(data);
-
 
         const me =
           data.find(
@@ -288,7 +303,7 @@ export default function RoomPage() {
 
   }, [roomId, currentUsername]);
 
-  // Auto-scroll
+
   useEffect(() => {
 
     messagesEndRef.current
@@ -298,7 +313,7 @@ export default function RoomPage() {
 
   }, [messages]);
 
-  // WebSocket
+
   useEffect(() => {
 
     if (!roomId) {
@@ -497,6 +512,7 @@ export default function RoomPage() {
 
   }, [roomId]);
 
+
   function sendTypingEvent() {
 
     const socket =
@@ -516,6 +532,7 @@ export default function RoomPage() {
       })
     );
   }
+
 
   function sendMessage() {
 
@@ -557,6 +574,7 @@ export default function RoomPage() {
     setInput("");
   }
 
+
   async function handlePromote(
     userId: number
   ) {
@@ -587,6 +605,7 @@ export default function RoomPage() {
       );
     }
   }
+
 
   async function handleDemote(
     userId: number
@@ -619,6 +638,7 @@ export default function RoomPage() {
     }
   }
 
+
   async function handleRemove(
     userId: number
   ) {
@@ -650,6 +670,7 @@ export default function RoomPage() {
     }
   }
 
+
   async function handleCollaborate(
     userId: number
   ) {
@@ -675,11 +696,19 @@ export default function RoomPage() {
     }
   }
 
+
   if (loading) {
 
     return (
 
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+      <div className="
+        min-h-screen
+        bg-black
+        text-white
+        flex
+        items-center
+        justify-center
+      ">
 
         <LoadingSpinner />
 
@@ -687,46 +716,123 @@ export default function RoomPage() {
     );
   }
 
+
   return (
 
-    <div className="min-h-screen bg-black text-white px-4 sm:px-6 md:px-10 py-6 flex flex-col">
+    <div className="
+      min-h-screen
+      bg-black
+      text-white
+      px-4
+      sm:px-6
+      md:px-10
+      py-6
+      flex
+      flex-col
+    ">
 
-      <div className="max-w-7xl w-full mx-auto flex gap-6 flex-1 flex-col lg:flex-row">
+      <div className="
+        max-w-7xl
+        w-full
+        mx-auto
+        flex
+        gap-6
+        flex-1
+        flex-col
+        lg:flex-row
+      ">
 
-        {/* CHAT SECTION */}
+        {/* CHAT */}
 
-        <div className="flex-1 flex flex-col">
+        <div className="
+          flex-1
+          flex
+          flex-col
+        ">
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          {/* HEADER */}
+
+          <div className="
+            flex
+            flex-col
+            lg:flex-row
+            lg:items-center
+            lg:justify-between
+            gap-6
+            mb-6
+          ">
 
             <div>
 
-              <h1 className="text-3xl font-bold">
+              <div className="
+                flex
+                items-center
+                gap-3
+                mb-2
+              ">
 
-                Room {roomId}
+                <h1 className="
+                  text-4xl
+                  font-bold
+                  tracking-tight
+                ">
 
-              </h1>
+                  Room {roomId}
 
-              <div className="mt-2 text-sm">
+                </h1>
 
-                <strong>
-                  Status:
-                </strong>{" "}
+                <Link
+                  href={`/rooms/${roomId}/graph`}
+                  className="
+                    flex
+                    items-center
+                    gap-2
+                    px-4
+                    py-2
+                    rounded-xl
+                    bg-white
+                    text-black
+                    text-sm
+                    font-semibold
+                    hover:scale-105
+                    transition
+                  "
+                >
+
+                  <Network size={16} />
+
+                  Graph
+
+                </Link>
+
+              </div>
+
+              <div className="
+                flex
+                items-center
+                gap-2
+                text-sm
+              ">
+
+                <Wifi size={14} />
 
                 <span
-                  className={`font-semibold ${
-                    connectionStatus ===
-                    "Connected"
+                  className={`
+                    font-semibold
+                    ${
+                      connectionStatus ===
+                      "Connected"
 
-                      ? "text-green-500"
+                        ? "text-green-500"
 
-                      : connectionStatus ===
-                        "Connecting..."
+                        : connectionStatus ===
+                          "Connecting..."
 
-                      ? "text-yellow-500"
+                        ? "text-yellow-500"
 
-                      : "text-red-500"
-                  }`}
+                        : "text-red-500"
+                    }
+                  `}
                 >
 
                   {connectionStatus}
@@ -737,53 +843,115 @@ export default function RoomPage() {
 
             </div>
 
-            <div className="text-sm text-zinc-400 break-words">
 
-              <strong>
-                Online:
-              </strong>{" "}
+            <div className="
+              flex
+              items-center
+              gap-3
+              px-4
+              py-3
+              rounded-2xl
+              border
+              border-zinc-800
+              bg-zinc-950
+            ">
 
-              {onlineUsers.length > 0
+              <Users size={18} />
 
-                ? onlineUsers.join(", ")
+              <div className="
+                text-sm
+                text-zinc-300
+              ">
 
-                : "No users online"}
+                {onlineUsers.length > 0
+
+                  ? onlineUsers.join(", ")
+
+                  : "No users online"}
+
+              </div>
 
             </div>
 
           </div>
 
-          <div className="border border-zinc-800 bg-zinc-950 rounded-2xl p-4 flex-1 overflow-y-auto min-h-[400px] max-h-[65vh] mb-4">
+
+          {/* MESSAGES */}
+
+          <div className="
+            border
+            border-zinc-800
+            bg-zinc-950/80
+            backdrop-blur-xl
+            rounded-3xl
+            p-6
+            shadow-2xl
+            flex-1
+            overflow-y-auto
+            min-h-[400px]
+            max-h-[65vh]
+            mb-4
+          ">
 
             {messages.length === 0 && (
 
-              <div className="text-zinc-500 text-center mt-10">
+              <div className="
+                text-zinc-500
+                text-center
+                mt-10
+              ">
 
                 No messages yet.
 
               </div>
             )}
 
-            <div className="flex flex-col gap-3">
+            <div className="
+              flex
+              flex-col
+              gap-3
+            ">
 
               {messages.map(
                 (msg, index) => (
 
                   <div
                     key={`${msg.id}-${index}`}
-                    className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3"
+                    className="
+                      bg-zinc-900/80
+                      border
+                      border-zinc-800
+                      rounded-2xl
+                      px-5
+                      py-4
+                      backdrop-blur-lg
+                      shadow-lg
+                    "
                   >
 
-                    <div className="flex items-center justify-between gap-4 mb-1">
+                    <div className="
+                      flex
+                      items-center
+                      justify-between
+                      gap-4
+                      mb-2
+                    ">
 
-                      <div className="text-sm font-semibold text-white">
+                      <div className="
+                        text-sm
+                        font-semibold
+                        text-white
+                      ">
 
                         {msg.username ||
                           "User"}
 
                       </div>
 
-                      <div className="text-xs text-zinc-500">
+                      <div className="
+                        text-xs
+                        text-zinc-500
+                      ">
 
                         {formatTime(
                           msg.created_at
@@ -793,7 +961,11 @@ export default function RoomPage() {
 
                     </div>
 
-                    <div className="text-zinc-300 break-words">
+                    <div className="
+                      text-zinc-300
+                      break-words
+                      leading-relaxed
+                    ">
 
                       {msg.content ||
                         msg.message}
@@ -810,19 +982,49 @@ export default function RoomPage() {
 
           </div>
 
+
+          {/* TYPING */}
+
           {typingUser && (
 
-            <div className="mb-2 text-sm text-zinc-500">
+            <div className="
+              mb-3
+              text-sm
+              text-zinc-400
+              italic
+              animate-pulse
+            ">
 
               {typingUser} is typing...
 
             </div>
           )}
 
-          <div className="flex gap-3">
+
+          {/* INPUT */}
+
+          <div className="
+            flex
+            items-center
+            gap-3
+            mt-2
+          ">
 
             <input
-              className="flex-1 bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 outline-none text-white"
+              className="
+                flex-1
+                bg-zinc-950
+                border
+                border-zinc-800
+                rounded-2xl
+                px-5
+                py-4
+                outline-none
+                text-white
+                text-sm
+                focus:border-white
+                transition
+              "
 
               value={input}
 
@@ -860,16 +1062,31 @@ export default function RoomPage() {
                 }
               }}
 
-              placeholder="Type a message..."
+              placeholder="
+                Share ideas, architecture,
+                or implementation thoughts...
+              "
             />
 
             <button
-              className="bg-white text-black px-6 py-3 rounded-xl font-semibold hover:opacity-90 transition"
+              className="
+                h-14
+                w-14
+                rounded-2xl
+                bg-white
+                text-black
+                flex
+                items-center
+                justify-center
+                hover:scale-105
+                transition
+                shadow-xl
+              "
 
               onClick={sendMessage}
             >
 
-              Send
+              <SendHorizonal size={18} />
 
             </button>
 
@@ -877,58 +1094,105 @@ export default function RoomPage() {
 
         </div>
 
-        {/* MEMBERS SIDEBAR */}
 
-        <div className="w-full lg:w-[320px] border border-zinc-800 bg-zinc-950 rounded-2xl p-4 h-fit">
+        {/* SIDEBAR */}
 
-          <h2 className="text-xl font-bold mb-4">
+        <div className="
+          w-full
+          lg:w-[320px]
+          border
+          border-zinc-800
+          bg-zinc-950/80
+          backdrop-blur-xl
+          rounded-3xl
+          shadow-2xl
+          p-5
+          h-fit
+        ">
+
+          <h2 className="
+            text-2xl
+            font-bold
+            mb-5
+          ">
 
             Members
 
           </h2>
 
-          <div className="space-y-3">
+          <div className="
+            space-y-4
+          ">
 
             {members.map((member) => (
 
               <div
                 key={member.user_id}
 
-                className="border border-zinc-800 rounded-xl p-3"
+                className="
+                  border
+                  border-zinc-800
+                  rounded-2xl
+                  p-4
+                  bg-zinc-900/60
+                "
               >
 
-                <div className="flex items-center justify-between mb-2">
-                  {member.username !==
-                    currentUsername &&
+                {member.username !==
+                  currentUsername &&
 
-                  !collaborators.includes(
-                      member.user_id
-                    ) && (
+                !collaborators.includes(
+                    member.user_id
+                  ) && (
 
-                    <button
-                      onClick={() =>
-                        handleCollaborate(
-                          member.user_id
-                        )
-                      }
+                  <button
+                    onClick={() =>
+                      handleCollaborate(
+                        member.user_id
+                      )
+                    }
 
-                      className="mb-3 w-full bg-zinc-800 hover:bg-zinc-700 transition rounded-lg py-2 text-sm font-medium"
-                    >
+                    className="
+                      mb-3
+                      w-full
+                      bg-zinc-800
+                      hover:bg-zinc-700
+                      transition
+                      rounded-xl
+                      py-2
+                      text-sm
+                      font-medium
+                    "
+                  >
 
-                      Collaborate
+                    Collaborate
 
-                    </button>
-                  )}
+                  </button>
+                )}
+
+                <div className="
+                  flex
+                  items-center
+                  justify-between
+                  mb-3
+                ">
 
                   <div>
 
-                    <div className="font-semibold">
+                    <div className="
+                      font-semibold
+                      text-white
+                    ">
 
                       {member.username}
 
                     </div>
 
-                    <div className="text-xs text-zinc-400 uppercase">
+                    <div className="
+                      text-xs
+                      text-zinc-400
+                      uppercase
+                    ">
 
                       {member.role}
 
@@ -944,7 +1208,11 @@ export default function RoomPage() {
                   member.role !==
                     "owner" && (
 
-                  <div className="flex gap-2 flex-wrap">
+                  <div className="
+                    flex
+                    gap-2
+                    flex-wrap
+                  ">
 
                     {member.role ===
                       "member" && (
@@ -956,7 +1224,15 @@ export default function RoomPage() {
                           )
                         }
 
-                        className="bg-blue-600 hover:bg-blue-700 transition px-3 py-1 rounded-lg text-sm"
+                        className="
+                          bg-blue-600
+                          hover:bg-blue-700
+                          transition
+                          px-3
+                          py-1.5
+                          rounded-xl
+                          text-sm
+                        "
                       >
 
                         Promote
@@ -974,7 +1250,15 @@ export default function RoomPage() {
                           )
                         }
 
-                        className="bg-yellow-600 hover:bg-yellow-700 transition px-3 py-1 rounded-lg text-sm"
+                        className="
+                          bg-yellow-600
+                          hover:bg-yellow-700
+                          transition
+                          px-3
+                          py-1.5
+                          rounded-xl
+                          text-sm
+                        "
                       >
 
                         Demote
@@ -989,7 +1273,15 @@ export default function RoomPage() {
                         )
                       }
 
-                      className="bg-red-600 hover:bg-red-700 transition px-3 py-1 rounded-lg text-sm"
+                      className="
+                        bg-red-600
+                        hover:bg-red-700
+                        transition
+                        px-3
+                        py-1.5
+                        rounded-xl
+                        text-sm
+                      "
                     >
 
                       Remove
@@ -1012,7 +1304,15 @@ export default function RoomPage() {
                       )
                     }
 
-                    className="bg-red-600 hover:bg-red-700 transition px-3 py-1 rounded-lg text-sm"
+                    className="
+                      bg-red-600
+                      hover:bg-red-700
+                      transition
+                      px-3
+                      py-1.5
+                      rounded-xl
+                      text-sm
+                    "
                   >
 
                     Remove
