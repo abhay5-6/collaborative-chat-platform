@@ -1,5 +1,10 @@
 import requests
 
+from app.core.config import (
+    OLLAMA_GENERATE_URL,
+    OLLAMA_TIMEOUT_SECONDS
+)
+
 from app.services.ai.retrieval_service import (
     search_room_memories
 )
@@ -66,7 +71,7 @@ Memories:
 
     response = requests.post(
 
-        "http://localhost:11434/api/generate",
+        OLLAMA_GENERATE_URL,
 
         json={
 
@@ -75,7 +80,8 @@ Memories:
             "prompt": prompt,
 
             "stream": False
-        }
+        },
+        timeout=OLLAMA_TIMEOUT_SECONDS
     )
 
     data = response.json()
@@ -109,6 +115,8 @@ Memories:
             ]
         )
     )
+
+    await db.commit()
 
     return {
         "summary": summary,

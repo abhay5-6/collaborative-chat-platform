@@ -6,7 +6,8 @@ from sqlalchemy import (
     String,
     DateTime,
     JSON,
-    Float
+    Float,
+    Index
 )
 
 from pgvector.sqlalchemy import (
@@ -28,6 +29,16 @@ from pgvector.sqlalchemy import Vector
 class RoomMemory(Base):
 
     __tablename__ = "room_memories"
+    __table_args__ = (
+        Index("ix_room_memories_room_id", "room_id"),
+        Index("ix_room_memories_created_by", "created_by"),
+        Index("ix_room_memories_created_at", "created_at"),
+        Index(
+            "ix_room_memories_room_created_at",
+            "room_id",
+            "created_at"
+        ),
+    )
 
     id: Mapped[int] = mapped_column(
         Integer,

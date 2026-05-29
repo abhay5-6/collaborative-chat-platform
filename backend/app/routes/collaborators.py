@@ -80,6 +80,8 @@ async def send_request(
             detail="Request already exists"
         )
 
+    await db.commit()
+
     return {
         "message":
             "Collaboration request sent"
@@ -139,6 +141,8 @@ async def accept_request(
             detail="Request not found"
         )
 
+    await db.commit()
+
     return {
         "message":
             "Collaboration accepted"
@@ -175,6 +179,8 @@ async def reject_request(
             status_code=404,
             detail="Request not found"
         )
+
+    await db.commit()
 
     return {
         "message":

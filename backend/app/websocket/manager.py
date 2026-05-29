@@ -15,6 +15,16 @@ class ConnectionManager:
             set[str]
         ] = {}
 
+        self.user_connections: dict[
+            int,
+            dict[str, WebSocket]
+        ] = {}
+
+        self.message_timestamps: dict[
+            str,
+            list[float]
+        ] = {}
+
     async def connect(
         self,
         room_id: int,
@@ -38,9 +48,43 @@ class ConnectionManager:
                 room_id
             ] = set()
 
+        if room_id not in (
+            self.user_connections
+        ):
+            self.user_connections[
+                room_id
+            ] = {}
+
+        existing_connection = (
+            self.user_connections[
+                room_id
+            ].get(username)
+        )
+
+        if existing_connection:
+            try:
+                await existing_connection.close(
+                    code=4000
+                )
+            except Exception:
+                pass
+
+            if existing_connection in (
+                self.active_connections[
+                    room_id
+                ]
+            ):
+                self.active_connections[
+                    room_id
+                ].remove(existing_connection)
+
         self.active_connections[
             room_id
         ].append(websocket)
+
+        self.user_connections[
+            room_id
+        ][username] = websocket
 
         self.online_users[
             room_id
@@ -76,12 +120,42 @@ class ConnectionManager:
                 ]
 
         if room_id in (
+            self.user_connections
+        ):
+
+            if (
+                self.user_connections[
+                    room_id
+                ].get(username)
+                is websocket
+            ):
+                del self.user_connections[
+                    room_id
+                ][username]
+
+            if not self.user_connections[
+                room_id
+            ]:
+
+                del self.user_connections[
+                    room_id
+                ]
+
+        if room_id in (
             self.online_users
         ):
 
-            self.online_users[
-                room_id
-            ].discard(username)
+            has_current_connection = (
+                room_id in self.user_connections
+                and username in self.user_connections[
+                    room_id
+                ]
+            )
+
+            if not has_current_connection:
+                self.online_users[
+                    room_id
+                ].discard(username)
 
             if not self.online_users[
                 room_id
@@ -147,5 +221,5 @@ class ConnectionManager:
                 del self.active_connections[
                     room_id
                 ]
-                
+
 manager = ConnectionManager()

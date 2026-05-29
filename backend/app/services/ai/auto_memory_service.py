@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 
 from app.db.session import (
     AsyncSessionLocal
@@ -23,6 +24,14 @@ from app.services.ai.memory_dedup_service import (
 from app.services.ai.memory_graph_service import (
     build_memory_relationships
 )
+from app.core.config import (
+    MEMORY_MAX_CONTENT_LENGTH,
+    MEMORY_MIN_CONTENT_LENGTH,
+    MEMORY_MIN_IMPORTANCE_SCORE
+)
+
+
+logger = logging.getLogger(__name__)
 
 
 async def process_message_for_memory(
@@ -42,15 +51,48 @@ async def process_message_for_memory(
         )
     )
 
-    print(result)
+    logger.debug(
+        "memory_extraction_result",
+        extra={
+            "room_id": room_id,
+            "user_id": user_id,
+            "should_store": result.get(
+                "should_store"
+            )
+        }
+    )
 
     if not result.get(
         "should_store"
     ):
         return None
 
+    content = str(
+        result.get("content", "")
+    ).strip()
+
+    importance_score = int(
+        result.get("importance_score", 0)
+    )
+
+    if (
+        len(content) < MEMORY_MIN_CONTENT_LENGTH
+        or len(content) > MEMORY_MAX_CONTENT_LENGTH
+        or importance_score < MEMORY_MIN_IMPORTANCE_SCORE
+    ):
+        logger.info(
+            "memory_rejected_quality_threshold",
+            extra={
+                "room_id": room_id,
+                "user_id": user_id,
+                "content_length": len(content),
+                "importance_score": importance_score
+            }
+        )
+        return None
+
     embedding = generate_embedding(
-        result["content"]
+        content
     )
 
     similar_memory = await (
@@ -74,7 +116,7 @@ async def process_message_for_memory(
 
         similar_memory.importance_score += 1
 
-        await db.commit()
+        await db.flush()
 
         return similar_memory
 
@@ -87,7 +129,7 @@ async def process_message_for_memory(
 
             created_by=user_id,
 
-            content=result["content"],
+            content=content,
 
             memory_type=result[
                 "memory_type"
@@ -95,9 +137,7 @@ async def process_message_for_memory(
 
             embedding=embedding,
 
-            importance_score=result[
-                "importance_score"
-            ],
+            importance_score=importance_score,
 
             tags=result["tags"],
 
@@ -126,20 +166,25 @@ async def process_memory_background(
 
         try:
 
-            await process_message_for_memory(
+            async with db.begin():
 
-                db=db,
+                await process_message_for_memory(
 
-                room_id=room_id,
+                    db=db,
 
-                user_id=user_id,
+                    room_id=room_id,
 
-                message_content=message_content
-            )
+                    user_id=user_id,
 
-        except Exception as e:
+                    message_content=message_content
+                )
 
-            print(
-                "BACKGROUND MEMORY ERROR:",
-                e
+        except Exception:
+
+            logger.exception(
+                "background_memory_processing_failed",
+                extra={
+                    "room_id": room_id,
+                    "user_id": user_id
+                }
             )

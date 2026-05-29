@@ -1,6 +1,15 @@
 import httpx
 import json
+import logging
 import re
+
+from app.core.config import (
+    OLLAMA_GENERATE_URL,
+    OLLAMA_TIMEOUT_SECONDS
+)
+
+
+logger = logging.getLogger(__name__)
 
 
 async def extract_memory_from_text(
@@ -41,7 +50,7 @@ Conversation:
 {text}
 """
 
-    print("EXTRACTOR HIT")
+    logger.info("memory_extractor_started")
 
     try:
 
@@ -49,7 +58,7 @@ Conversation:
 
             response = await client.post(
 
-                "http://localhost:11434/api/generate",
+                OLLAMA_GENERATE_URL,
 
                 json={
 
@@ -60,10 +69,15 @@ Conversation:
                     "stream": False
                 },
 
-                timeout=120
+                timeout=OLLAMA_TIMEOUT_SECONDS
             )
 
-        print(response.text)
+        logger.debug(
+            "memory_extractor_raw_response",
+            extra={
+                "response_text": response.text
+            }
+        )
 
         data = response.json()
 
@@ -83,9 +97,8 @@ Conversation:
 
         if not match:
 
-            print(
-                "NO JSON FOUND "
-                "IN MODEL RESPONSE"
+            logger.warning(
+                "memory_extractor_no_json_found"
             )
 
             return {
@@ -98,10 +111,10 @@ Conversation:
 
         return parsed
 
-    except Exception as e:
+    except Exception:
 
-        print(
-            f"MEMORY EXTRACTION ERROR: {e}"
+        logger.exception(
+            "memory_extraction_failed"
         )
 
         return {

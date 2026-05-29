@@ -62,7 +62,7 @@ export default function Navbar() {
       w-full
       border-b
       border-neutral-800
-      bg-black/80
+      bg-[#0b0f1a]/70
       backdrop-blur-xl
     ">
 
@@ -166,8 +166,10 @@ export default function Navbar() {
 
                   ${isActive("/rooms")
                     ? `
-                      bg-white
-                      text-black
+                      bg-[rgba(88,101,242,0.18)]
+                      text-white
+                      border
+                      border-[rgba(88,101,242,0.45)]
                     `
                     : `
                       text-neutral-400

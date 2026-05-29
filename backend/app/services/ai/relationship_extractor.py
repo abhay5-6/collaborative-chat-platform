@@ -1,5 +1,14 @@
 import httpx
 import json
+import logging
+
+from app.core.config import (
+    OLLAMA_GENERATE_URL,
+    OLLAMA_TIMEOUT_SECONDS
+)
+
+
+logger = logging.getLogger(__name__)
 
 
 async def extract_relationship(
@@ -41,7 +50,7 @@ Memory B:
 
             response = await client.post(
 
-                "http://localhost:11434/api/generate",
+                OLLAMA_GENERATE_URL,
 
                 json={
 
@@ -52,7 +61,7 @@ Memory B:
                     "stream": False
                 },
 
-                timeout=120
+                timeout=OLLAMA_TIMEOUT_SECONDS
             )
 
         data = response.json()
@@ -81,11 +90,10 @@ Memory B:
 
         return relationship
 
-    except Exception as e:
+    except Exception:
 
-        print(
-            "RELATIONSHIP ERROR:",
-            e
+        logger.exception(
+            "relationship_extraction_failed"
         )
 
         return None

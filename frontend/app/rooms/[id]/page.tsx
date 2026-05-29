@@ -15,6 +15,7 @@ import {
   useParams,
   useRouter
 } from "next/navigation";
+import axios from "axios";
 
 import {
   Network,
@@ -65,6 +66,27 @@ type RoomMember = {
   username: string;
   role: string;
 };
+
+type Collaborator = {
+  id: number;
+  username: string;
+};
+
+function getErrorMessage(
+  error: unknown,
+  fallback: string
+) {
+  if (axios.isAxiosError(error)) {
+    const detail =
+      error.response?.data?.detail;
+
+    if (typeof detail === "string") {
+      return detail;
+    }
+  }
+
+  return fallback;
+}
 
 
 function formatTime(
@@ -175,11 +197,12 @@ export default function RoomPage() {
 
         setMessages(data);
 
-      } catch (error: any) {
+      } catch (error) {
 
         console.error(error);
 
         if (
+          axios.isAxiosError(error) &&
           error.response?.status === 403
         ) {
 
@@ -246,7 +269,7 @@ export default function RoomPage() {
         setCollaborators(
 
           data.map(
-            (user: any) => user.id
+            (user: Collaborator) => user.id
           )
         );
 
@@ -597,11 +620,13 @@ export default function RoomPage() {
 
       setMembers(updated);
 
-    } catch (error: any) {
+    } catch (error) {
 
       toast.error(
-        error?.response?.data?.detail ||
-        "Promotion failed"
+        getErrorMessage(
+          error,
+          "Promotion failed"
+        )
       );
     }
   }
@@ -629,11 +654,13 @@ export default function RoomPage() {
 
       setMembers(updated);
 
-    } catch (error: any) {
+    } catch (error) {
 
       toast.error(
-        error?.response?.data?.detail ||
-        "Demotion failed"
+        getErrorMessage(
+          error,
+          "Demotion failed"
+        )
       );
     }
   }
@@ -661,11 +688,13 @@ export default function RoomPage() {
 
       setMembers(updated);
 
-    } catch (error: any) {
+    } catch (error) {
 
       toast.error(
-        error?.response?.data?.detail ||
-        "Removal failed"
+        getErrorMessage(
+          error,
+          "Removal failed"
+        )
       );
     }
   }
@@ -685,13 +714,14 @@ export default function RoomPage() {
         "Collaboration request sent"
       );
 
-    } catch (error: any) {
+    } catch (error) {
 
       toast.error(
 
-        error?.response?.data?.detail ||
-
-        "Failed to send request"
+        getErrorMessage(
+          error,
+          "Failed to send request"
+        )
       );
     }
   }
@@ -703,7 +733,7 @@ export default function RoomPage() {
 
       <div className="
         min-h-screen
-        bg-black
+        bg-transparent
         text-white
         flex
         items-center
@@ -721,7 +751,7 @@ export default function RoomPage() {
 
     <div className="
       min-h-screen
-      bg-black
+      bg-transparent
       text-white
       px-4
       sm:px-6

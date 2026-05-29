@@ -1,25 +1,10 @@
-from jose import JWTError, jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import (
-    SECRET_KEY,
-    ALGORITHM
+from app.core.security import (
+    TokenDecodeError,
+    decode_access_token
 )
-from app.models.user import User
-from app.models.membership import (
-    RoomMembership
-)
-
-from jose import JWTError, jwt
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.core.config import (
-    SECRET_KEY,
-    ALGORITHM
-)
-
 from app.models.user import User
 from app.models.room import Room
 
@@ -36,10 +21,8 @@ async def authenticate_websocket(
 
     try:
 
-        payload = jwt.decode(
-            token,
-            SECRET_KEY,
-            algorithms=[ALGORITHM]
+        payload = decode_access_token(
+            token
         )
 
         email = payload.get("sub")
@@ -47,7 +30,7 @@ async def authenticate_websocket(
         if not email:
             return None
 
-    except JWTError:
+    except TokenDecodeError:
         return None
 
     user_result = await db.execute(

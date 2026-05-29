@@ -87,7 +87,7 @@ async def send_collaboration_request(
 
     db.add(request)
 
-    await db.commit()
+    await db.flush()
 
     return "request_sent"
 
@@ -164,7 +164,7 @@ async def accept_collaboration_request(
 
     request.status = "accepted"
 
-    await db.commit()
+    await db.flush()
 
     return "accepted"
 
@@ -195,7 +195,7 @@ async def reject_collaboration_request(
 
     request.status = "rejected"
 
-    await db.commit()
+    await db.flush()
 
     return "rejected"
 

@@ -55,7 +55,7 @@ async def create_room_memory(
 
     db.add(memory)
 
-    await db.commit()
+    await db.flush()
 
     await db.refresh(memory)
 

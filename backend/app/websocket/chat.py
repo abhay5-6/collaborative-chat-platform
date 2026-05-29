@@ -4,6 +4,16 @@ from fastapi import (
     WebSocketDisconnect
 )
 
+import asyncio
+import json
+import logging
+import re
+import time
+
+from app.core.config import (
+    WEBSOCKET_ALLOWED_ORIGINS,
+    settings
+)
 from app.websocket.manager import manager
 
 from app.websocket.connection import (
@@ -17,13 +27,65 @@ from app.db.session import (
 from app.services.message_service import (
     create_realtime_message
 )
-import asyncio
 
 from app.services.ai.auto_memory_service import (
     process_memory_background
 )
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+CONTROL_CHARS_RE = re.compile(r"[\x00-\x1f\x7f]")
+
+
+def sanitize_message(text: str) -> str:
+    text = text.strip()
+    return CONTROL_CHARS_RE.sub("", text)
+
+
+def is_rate_limited(
+    room_id: int,
+    user_id: int
+) -> bool:
+    now = time.time()
+    user_key = f"{room_id}:{user_id}"
+    window_seconds = (
+        settings.websocket_rate_limit_window_seconds
+    )
+
+    timestamps = [
+        timestamp
+        for timestamp in manager.message_timestamps.get(
+            user_key,
+            []
+        )
+        if now - timestamp < window_seconds
+    ]
+
+    manager.message_timestamps[user_key] = timestamps
+
+    if len(timestamps) >= (
+        settings.websocket_message_rate_limit
+    ):
+        return True
+
+    timestamps.append(now)
+    return False
+
+
+async def send_error(
+    websocket: WebSocket,
+    message: str
+) -> None:
+    await websocket.send_json(
+        {
+            "type": "error",
+            "data": {
+                "message": message
+            }
+        }
+    )
 
 
 @router.websocket("/ws/{room_id}")
@@ -31,6 +93,27 @@ async def websocket_chat(
     websocket: WebSocket,
     room_id: int
 ):
+    origin = websocket.headers.get(
+        "origin"
+    )
+
+    if (
+        origin
+        and origin not in WEBSOCKET_ALLOWED_ORIGINS
+    ):
+        logger.warning(
+            "websocket_origin_rejected",
+            extra={
+                "room_id": room_id,
+                "origin": origin
+            }
+        )
+
+        await websocket.close(
+            code=1008
+        )
+
+        return
 
     token = websocket.query_params.get(
         "token"
@@ -86,15 +169,51 @@ async def websocket_chat(
 
                 try:
 
-                    data = await websocket.receive_json()
+                    raw_data = await websocket.receive_text()
+
+                    if len(raw_data) > (
+                        settings.websocket_max_message_length
+                        + 1000
+                    ):
+                        await send_error(
+                            websocket,
+                            "Payload too large"
+                        )
+                        continue
+
+                    data = json.loads(raw_data)
+
+                except json.JSONDecodeError:
+                    await send_error(
+                        websocket,
+                        "Invalid JSON payload"
+                    )
+                    continue
 
                 except RuntimeError:
 
                     break
 
+                if not isinstance(data, dict):
+                    await send_error(
+                        websocket,
+                        "Invalid payload"
+                    )
+                    continue
+
                 event_type = data.get(
                     "type"
                 )
+
+                if event_type == "ping":
+
+                    await websocket.send_json(
+                        {
+                            "type": "pong"
+                        }
+                    )
+
+                    continue
 
                 # Typing indicator
                 if event_type == "typing":
@@ -119,7 +238,37 @@ async def websocket_chat(
                         "message"
                     )
 
+                    if not isinstance(content, str):
+                        await send_error(
+                            websocket,
+                            "Message must be text"
+                        )
+                        continue
+
+                    content = sanitize_message(
+                        content
+                    )
+
                     if not content:
+                        continue
+
+                    if len(content) > (
+                        settings.websocket_max_message_length
+                    ):
+                        await send_error(
+                            websocket,
+                            "Message too large"
+                        )
+                        continue
+
+                    if is_rate_limited(
+                        room_id,
+                        user.id
+                    ):
+                        await send_error(
+                            websocket,
+                            "Rate limit exceeded"
+                        )
                         continue
 
                     saved_message = (
@@ -144,6 +293,8 @@ async def websocket_chat(
                         )
 
                         continue
+
+                    await db.commit()
 
                     message_payload = {
                         "type": "chat_message",
@@ -173,18 +324,52 @@ async def websocket_chat(
                         room_id,
                         message_payload
                     )
+
                     # Process AI memory in background
-                    asyncio.create_task(
-                        process_memory_background(
-                            room_id,
-                            user.id,
-                            content
+                    try:
+                        asyncio.create_task(
+                            process_memory_background(
+                                room_id,
+                                user.id,
+                                content
+                            )
                         )
-                    )
+                    except Exception:
+                        logger.exception(
+                            "memory_background_task_create_failed",
+                            extra={
+                                "room_id": room_id,
+                                "user_id": user.id
+                            }
+                        )
+
+                    continue
+
+                await send_error(
+                    websocket,
+                    "Unsupported event type"
+                )
 
         except WebSocketDisconnect:
 
             pass
+
+        except Exception:
+
+            logger.exception(
+                "websocket_chat_failed",
+                extra={
+                    "room_id": room_id,
+                    "user_id": user.id
+                }
+            )
+
+            try:
+                await websocket.close(
+                    code=1011
+                )
+            except Exception:
+                pass
 
         finally:
 

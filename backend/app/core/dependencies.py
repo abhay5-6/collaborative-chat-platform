@@ -1,10 +1,12 @@
-from jose import JWTError, jwt
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import SECRET_KEY, ALGORITHM
+from app.core.security import (
+    TokenDecodeError,
+    decode_access_token
+)
 from app.db.session import get_db
 from app.models.user import User
 
@@ -23,10 +25,8 @@ async def get_current_user(
     )
 
     try:
-        payload = jwt.decode(
-            token,
-            SECRET_KEY,
-            algorithms=[ALGORITHM]
+        payload = decode_access_token(
+            token
         )
 
         email: str = payload.get("sub")
@@ -34,7 +34,7 @@ async def get_current_user(
         if email is None:
             raise credentials_exception
 
-    except JWTError:
+    except TokenDecodeError:
         raise credentials_exception
 
     result = await db.execute(

@@ -63,4 +63,4 @@ async def build_memory_relationships(
 
         db.add(edge)
 
-    await db.commit()
+    await db.flush()

@@ -3,7 +3,8 @@ from datetime import datetime
 from sqlalchemy import (
     ForeignKey,
     String,
-    DateTime
+    DateTime,
+    Index
 )
 
 from sqlalchemy.orm import (
@@ -18,6 +19,21 @@ class CollaboratorRequest(Base):
 
     __tablename__ = (
         "collaborator_requests"
+    )
+    __table_args__ = (
+        Index(
+            "ix_collaborator_requests_sender_id",
+            "sender_id"
+        ),
+        Index(
+            "ix_collaborator_requests_receiver_status",
+            "receiver_id",
+            "status"
+        ),
+        Index(
+            "ix_collaborator_requests_created_at",
+            "created_at"
+        ),
     )
 
     id: Mapped[int] = mapped_column(

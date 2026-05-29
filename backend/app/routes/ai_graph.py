@@ -1,6 +1,7 @@
 from fastapi import (
     APIRouter,
-    Depends
+    Depends,
+    Request
 )
 
 from sqlalchemy.ext.asyncio import (
@@ -14,6 +15,8 @@ from app.db.session import (
 from app.services.ai.graph_service import (
     build_room_graph
 )
+from app.core.config import settings
+from app.core.rate_limit import limiter
 
 
 router = APIRouter(
@@ -27,7 +30,9 @@ router = APIRouter(
 @router.get(
     "/graph/{room_id}"
 )
+@limiter.limit(settings.ai_rate_limit)
 async def get_room_graph(
+    request: Request,
 
     room_id: int,
 

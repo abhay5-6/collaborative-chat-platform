@@ -77,16 +77,19 @@ const [
 
   useEffect(() => {
 
-  const token =
-    localStorage.getItem(
-      "token"
-    );
+    queueMicrotask(() => {
 
-  setIsAuthenticated(
-    !!token
-  );
+      const token =
+        localStorage.getItem(
+          "token"
+        );
 
-  setIsLoaded(true);
+      setIsAuthenticated(
+        !!token
+      );
+
+      setIsLoaded(true);
+    });
 
 }, []);
 

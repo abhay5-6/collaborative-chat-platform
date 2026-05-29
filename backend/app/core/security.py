@@ -20,7 +20,7 @@ def verify_password(
     )
 
 from datetime import datetime, timedelta, timezone
-from jose import jwt
+from jose import JWTError, jwt
 
 from app.core.config import (
     SECRET_KEY,
@@ -29,14 +29,25 @@ from app.core.config import (
 )
 
 
+class TokenDecodeError(Exception):
+    pass
+
+
 def create_access_token(data: dict):
     to_encode = data.copy()
+    issued_at = datetime.now(timezone.utc)
 
-    expire = datetime.now(timezone.utc) + timedelta(
+    expire = issued_at + timedelta(
         minutes=ACCESS_TOKEN_EXPIRE_MINUTES
     )
 
-    to_encode.update({"exp": expire})
+    to_encode.update(
+        {
+            "exp": expire,
+            "iat": issued_at,
+            "token_type": "access"
+        }
+    )
 
     encoded_jwt = jwt.encode(
         to_encode,
@@ -45,3 +56,32 @@ def create_access_token(data: dict):
     )
 
     return encoded_jwt
+
+
+def decode_access_token(token: str) -> dict:
+    try:
+        payload = jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM],
+            options={
+                "require_exp": True,
+                "require_iat": True
+            }
+        )
+    except JWTError as exc:
+        raise TokenDecodeError(
+            "Invalid or expired token"
+        ) from exc
+
+    if payload.get("token_type") != "access":
+        raise TokenDecodeError(
+            "Invalid token type"
+        )
+
+    if not isinstance(payload.get("sub"), str):
+        raise TokenDecodeError(
+            "Missing token subject"
+        )
+
+    return payload

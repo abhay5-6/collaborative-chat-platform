@@ -1,4 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Request
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
@@ -11,6 +16,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.schemas.token import Token
 from app.services.user_service import authenticate_user
 from app.core.security import create_access_token
+from app.core.config import settings
+from app.core.rate_limit import limiter
 
 from app.core.dependencies import get_current_user
 from app.models.user import User
@@ -26,7 +33,9 @@ router = APIRouter(
     "/register",
     response_model=UserResponse
 )
+@limiter.limit(settings.register_rate_limit)
 async def register(
+    request: Request,
     user: UserCreate,
     db: AsyncSession = Depends(get_db)
 ):
@@ -42,7 +51,9 @@ async def register(
 
 
 @router.post("/login", response_model=Token)
+@limiter.limit(settings.login_rate_limit)
 async def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db)
 ):

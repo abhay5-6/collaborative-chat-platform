@@ -1,5 +1,10 @@
-import asyncio
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    Request
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
@@ -12,6 +17,8 @@ from app.services.message_service import (
     get_room_messages
 )
 from app.core.dependencies import get_current_user
+from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.models.user import User
 
 
@@ -28,7 +35,10 @@ from fastapi import BackgroundTasks
     "/{room_id}/messages",
     response_model=MessageResponse
 )
+@limiter.limit(settings.message_rate_limit)
 async def create_message(
+
+    request: Request,
 
     room_id: int,
 
@@ -66,6 +76,8 @@ async def create_message(
             )
         )
 
+    await db.commit()
+
     background_tasks.add_task(
 
         process_memory_background,
@@ -84,13 +96,24 @@ async def create_message(
 )
 async def list_room_messages(
     room_id: int,
+    limit: int = Query(
+        default=50,
+        ge=1,
+        le=100
+    ),
+    offset: int = Query(
+        default=0,
+        ge=0
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     messages = await get_room_messages(
         db,
         room_id,
-        current_user
+        current_user,
+        limit,
+        offset
     )
 
     if messages is None:

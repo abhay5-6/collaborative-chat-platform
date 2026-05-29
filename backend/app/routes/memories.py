@@ -1,6 +1,7 @@
 from fastapi import (
     APIRouter,
-    Depends
+    Depends,
+    Request
 )
 
 from sqlalchemy.ext.asyncio import (
@@ -17,10 +18,15 @@ from app.schemas.room_memory import (
 from app.services.ai.memory_service import (
     create_room_memory
 )
+from app.services.ai.embedding_service import (
+    generate_embedding
+)
 
 from app.core.dependencies import (
     get_current_user
 )
+from app.core.config import settings
+from app.core.rate_limit import limiter
 
 from app.models.user import User
 
@@ -59,6 +65,9 @@ async def add_room_memory(
             created_by=current_user.id,
 
             content=memory.content,
+            embedding=generate_embedding(
+                memory.content
+            ),
 
             memory_type=memory.memory_type,
             importance_score=memory.importance_score,
@@ -66,12 +75,16 @@ async def add_room_memory(
         )
     )
 
+    await db.commit()
+
     return created_memory
 
 @router.get(
     "/{room_id}/memories/search"
 )
+@limiter.limit(settings.ai_rate_limit)
 async def semantic_memory_search(
+    request: Request,
     room_id: int,
     query: str,
     db: AsyncSession = Depends(get_db),
@@ -91,7 +104,9 @@ async def semantic_memory_search(
 @router.get(
     "/{room_id}/ai"
 )
+@limiter.limit(settings.ai_rate_limit)
 async def room_ai_query(
+    request: Request,
     room_id: int,
     query: str,
     db: AsyncSession = Depends(get_db),

@@ -1,5 +1,10 @@
 import requests
 
+from app.core.config import (
+    OLLAMA_GENERATE_URL,
+    OLLAMA_TIMEOUT_SECONDS
+)
+
 from app.services.ai.context_builder import (
     build_room_context
 )
@@ -31,7 +36,7 @@ Answer using the room context whenever relevant.
 
     response = requests.post(
 
-        "http://localhost:11434/api/generate",
+        OLLAMA_GENERATE_URL,
 
         json={
 
@@ -40,7 +45,8 @@ Answer using the room context whenever relevant.
             "prompt": prompt,
 
             "stream": False
-        }
+        },
+        timeout=OLLAMA_TIMEOUT_SECONDS
     )
 
     data = response.json()

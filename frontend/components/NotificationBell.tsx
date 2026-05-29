@@ -109,7 +109,9 @@ export default function NotificationBell() {
 
   useEffect(() => {
 
-    fetchNotifications();
+    queueMicrotask(() => {
+      void fetchNotifications();
+    });
 
   }, []);
 
@@ -266,7 +268,7 @@ export default function NotificationBell() {
           setOpen(!open)
         }
 
-        className="relative p-2 rounded-lg hover:bg-zinc-800 transition"
+        className="relative p-2 rounded-lg hover:bg-[rgba(88,101,242,0.16)] transition"
       >
 
         <Bell size={22} />
@@ -284,7 +286,7 @@ export default function NotificationBell() {
 
       {open && (
 
-        <div className="absolute right-0 mt-3 w-96 bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
+        <div className="absolute right-0 mt-3 w-96 bg-zinc-950/80 backdrop-blur-xl border border-[rgba(88,101,242,0.35)] rounded-2xl shadow-2xl z-50 overflow-hidden">
 
           <div className="p-4 border-b border-zinc-800 font-semibold text-lg">
 

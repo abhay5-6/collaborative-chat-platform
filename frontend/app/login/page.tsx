@@ -87,7 +87,7 @@ export default function LoginPage() {
 
   return (
 
-    <main className="min-h-screen flex items-center justify-center bg-black text-white px-6">
+    <main className="min-h-screen flex items-center justify-center bg-transparent text-white px-6">
 
       <form
         onSubmit={handleLogin}

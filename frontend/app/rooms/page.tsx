@@ -7,6 +7,7 @@ import {
 
 import { useRouter }
 from "next/navigation";
+import axios from "axios";
 
 import { toast }
 from "sonner";
@@ -31,6 +32,22 @@ type Room = {
   is_owner: boolean;
   has_pending_request: boolean;
 };
+
+function getErrorMessage(
+  error: unknown,
+  fallback: string
+) {
+  if (axios.isAxiosError(error)) {
+    const detail =
+      error.response?.data?.detail;
+
+    if (typeof detail === "string") {
+      return detail;
+    }
+  }
+
+  return fallback;
+}
 
 export default function RoomsPage() {
 
@@ -72,7 +89,7 @@ export default function RoomsPage() {
 
     loadRooms();
 
-  }, []);
+  }, [router]);
 
   async function loadRooms() {
 
@@ -188,14 +205,16 @@ export default function RoomsPage() {
         return;
       }
 
-    } catch (error: any) {
+    } catch (error) {
 
       console.error(error);
 
       toast.error(
-        error?.response?.data?.detail ||
-        "Failed to join room"
-);
+        getErrorMessage(
+          error,
+          "Failed to join room"
+        )
+      );
     }
   }
 
@@ -251,7 +270,7 @@ export default function RoomsPage() {
 
     return (
 
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+      <div className="min-h-screen bg-transparent text-white flex items-center justify-center">
 
         Loading...
 
@@ -261,7 +280,7 @@ export default function RoomsPage() {
 
   return (
 
-    <div className="min-h-screen bg-black text-white px-6 py-8">
+    <div className="min-h-screen bg-transparent text-white px-6 py-8">
 
       <div className="max-w-5xl mx-auto">
 
@@ -378,7 +397,7 @@ export default function RoomsPage() {
             <div
               key={room.id}
 
-              className="border border-zinc-800 rounded-2xl p-6 bg-black"
+              className="border border-zinc-800 rounded-2xl p-6 bg-zinc-950/40 backdrop-blur-xl"
             >
 
               <div className="flex items-start justify-between gap-4">

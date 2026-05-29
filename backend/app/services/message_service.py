@@ -67,7 +67,7 @@ async def send_message(
 
     db.add(message)
 
-    await db.commit()
+    await db.flush()
 
     await db.refresh(message)
     
@@ -77,7 +77,9 @@ async def send_message(
 async def get_room_messages(
     db: AsyncSession,
     room_id: int,
-    user: User
+    user: User,
+    limit: int = 50,
+    offset: int = 0
 ):
 
     allowed = await has_room_access(
@@ -102,6 +104,8 @@ async def get_room_messages(
         .order_by(
             Message.created_at
         )
+        .offset(offset)
+        .limit(limit)
     )
 
     messages = result.all()
@@ -154,7 +158,7 @@ async def create_realtime_message(
 
     db.add(message)
 
-    await db.commit()
+    await db.flush()
 
     await db.refresh(message)
 

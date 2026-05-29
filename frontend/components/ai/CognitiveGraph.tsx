@@ -13,6 +13,7 @@ import ReactFlow, {
   MiniMap,
   Node,
   Edge,
+  NodeProps,
   Handle,
   Position,
 
@@ -27,35 +28,15 @@ import {
 import "reactflow/dist/style.css";
 
 
-type GraphNode = {
-
-  id: string;
-
-  type: string;
-
-  data: {
-    label: string;
-    domain: string;
-    importance: number;
-  };
-
-  position: {
-    x: number;
-    y: number;
-  };
-};
-
-
-type GraphEdge = {
-
-  id: string;
-
-  source: string;
-
-  target: string;
-
+type CognitiveNodeData = {
   label: string;
+  domain: string;
+  importance: number;
 };
+
+type GraphNode = Node<CognitiveNodeData>;
+
+type GraphEdge = Edge;
 
 
 function getDomainColor(
@@ -105,7 +86,7 @@ function CognitiveNode({
 
   data
 
-}: any) {
+}: NodeProps<CognitiveNodeData>) {
 
   const gradient =
     getDomainColor(
@@ -236,10 +217,10 @@ export default function CognitiveGraph({
 }) {
 
   const [nodes, setNodes] =
-    useState<Node[]>([]);
+    useState<GraphNode[]>([]);
 
   const [edges, setEdges] =
-    useState<Edge[]>([]);
+    useState<GraphEdge[]>([]);
 
   const [loading, setLoading] =
     useState(true);
@@ -253,7 +234,8 @@ export default function CognitiveGraph({
 
         const res = await fetch(
 
-          `http://127.0.0.1:8000/ai/graph/${roomId}`
+          `${process.env
+            .NEXT_PUBLIC_API_URL}/ai/graph/${roomId}`
         );
 
         const data =
@@ -291,7 +273,7 @@ export default function CognitiveGraph({
 
   const transformedNodes = useMemo(() => (
 
-    nodes.map((node: any) => ({
+    nodes.map((node: GraphNode) => ({
 
       ...node,
 
@@ -333,7 +315,7 @@ export default function CognitiveGraph({
       overflow-hidden
       border
       border-neutral-800
-      bg-black
+      bg-neutral-950
       shadow-2xl
     ">
 
