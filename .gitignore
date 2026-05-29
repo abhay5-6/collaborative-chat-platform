@@ -17,4 +17,10 @@ Thumbs.db
 .next/
 dist/
 coverage/
-*.logbackend/_wheelcheck/torch-2.12.0-cp313-cp313-win_amd64.whl
+*.log
+backend/_wheelcheck/torch-2.12.0-cp313-cp313-win_amd64.whl
+logs/
+*.pid
+*.jobid
+_wheelcheck/
+*.whl
