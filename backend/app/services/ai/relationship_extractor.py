@@ -1,14 +1,18 @@
-import httpx
 import json
 import logging
 
+from openai import AsyncOpenAI
+
 from app.core.config import (
-    OLLAMA_GENERATE_URL,
-    OLLAMA_TIMEOUT_SECONDS
+    OPENAI_API_KEY,
+    OPENAI_MODEL,
 )
 
-
 logger = logging.getLogger(__name__)
+
+client = AsyncOpenAI(
+    api_key=OPENAI_API_KEY
+)
 
 
 async def extract_relationship(
@@ -17,7 +21,13 @@ async def extract_relationship(
 
     target_text: str
 ):
-    print("Extracting relationship between two memories with content lengths:", len(source_text), "and", len(target_text))
+
+    print(
+        "Extracting relationship between two memories with content lengths:",
+        len(source_text),
+        "and",
+        len(target_text)
+    )
 
     prompt = f"""
 You are a memory relationship analyzer.
@@ -47,49 +57,59 @@ Memory B:
 
     try:
 
-        async with httpx.AsyncClient() as client:
+        response = await client.chat.completions.create(
 
-            response = await client.post(
+            model=OPENAI_MODEL,
 
-                OLLAMA_GENERATE_URL,
+            temperature=0,
 
-                json={
-
-                    "model": "phi3",
-
-                    "prompt": prompt,
-
-                    "stream": False
+            messages=[
+                {
+                    "role": "system",
+                    "content":
+                        "Return ONLY valid JSON."
                 },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
 
-                timeout=OLLAMA_TIMEOUT_SECONDS
-            )
-
-        data = response.json()
-
-        cleaned_response = (
-
-            data["response"]
-
-            .replace("```json", "")
-
-            .replace("```", "")
-
+        raw_response = (
+            response.choices[0]
+            .message.content
             .strip()
         )
 
         parsed = json.loads(
-            cleaned_response
+            raw_response
         )
 
         relationship = parsed.get(
             "relationship"
         )
 
-        if relationship == "NONE":
+        if (
+            not relationship or
+            relationship == "NONE"
+        ):
             return None
 
+        print(
+            "Relationship extracted:",
+            relationship
+        )
+
         return relationship
+
+    except json.JSONDecodeError:
+
+        logger.warning(
+            "relationship_invalid_json"
+        )
+
+        return None
 
     except Exception:
 
@@ -98,4 +118,3 @@ Memory B:
         )
 
         return None
-    print("Relationship extraction completed for memories with content lengths:", len(source_text), "and", len(target_text))

@@ -92,8 +92,10 @@ async def process_message_for_memory(
         )
         return None
 
-    embedding = generate_embedding(
-        content
+    embedding = await (
+        generate_embedding(
+            content
+        )
     )
 
     similar_memory = await (

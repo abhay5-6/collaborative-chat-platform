@@ -1,8 +1,8 @@
-import requests
+from openai import AsyncOpenAI
 
 from app.core.config import (
-    OLLAMA_GENERATE_URL,
-    OLLAMA_TIMEOUT_SECONDS
+    OPENAI_API_KEY,
+    OPENAI_MODEL
 )
 
 from app.services.ai.retrieval_service import (
@@ -17,6 +17,10 @@ from app.services.ai.embedding_service import (
     generate_embedding
 )
 
+client = AsyncOpenAI(
+    api_key=OPENAI_API_KEY
+)
+
 
 async def generate_memory_summary(
 
@@ -28,7 +32,13 @@ async def generate_memory_summary(
 
     created_by: int
 ):
-    print("Generating memory summary for room_id:", room_id, "with topic_query:", topic_query)
+
+    print(
+        "Generating memory summary for room_id:",
+        room_id,
+        "with topic_query:",
+        topic_query
+    )
 
     memories = await (
         search_room_memories(
@@ -70,27 +80,35 @@ Memories:
 {memory_text}
 """
 
-    response = requests.post(
+    response = await client.chat.completions.create(
 
-        OLLAMA_GENERATE_URL,
+        model=OPENAI_MODEL,
 
-        json={
+        temperature=0,
 
-            "model": "phi3",
-
-            "prompt": prompt,
-
-            "stream": False
-        },
-        timeout=OLLAMA_TIMEOUT_SECONDS
+        messages=[
+            {
+                "role": "system",
+                "content":
+                    "You are an AI project memory summarizer."
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
     )
 
-    data = response.json()
+    summary = (
+        response.choices[0]
+        .message.content
+        .strip()
+    )
 
-    summary = data["response"]
-
-    summary_embedding = (
-        generate_embedding(summary)
+    summary_embedding = await (
+        generate_embedding(
+            summary
+        )
     )
 
     stored_summary = await (
@@ -119,10 +137,15 @@ Memories:
 
     await db.commit()
 
+    print(
+        "Memory summary generated and stored with id:",
+        stored_summary.id,
+        "in room_id:",
+        room_id
+    )
+
     return {
         "summary": summary,
-        "stored_memory_id": (
+        "stored_memory_id":
             stored_summary.id
-        )
     }
-    print("Memory summary generated and stored with id:", stored_summary.id, "in room_id:", room_id)

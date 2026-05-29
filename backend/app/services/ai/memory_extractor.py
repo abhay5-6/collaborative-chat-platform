@@ -1,13 +1,18 @@
-import httpx
 import json
 import logging
 
+from openai import AsyncOpenAI
+
 from app.core.config import (
-    OLLAMA_GENERATE_URL,
-    OLLAMA_TIMEOUT_SECONDS
+    OPENAI_API_KEY,
+    OPENAI_MODEL,
 )
 
 logger = logging.getLogger(__name__)
+
+client = AsyncOpenAI(
+    api_key=OPENAI_API_KEY
+)
 
 
 async def extract_memory_from_text(
@@ -66,31 +71,31 @@ Conversation:
 
     try:
 
-        async with httpx.AsyncClient() as client:
-
-            response = await client.post(
-
-                OLLAMA_GENERATE_URL,
-
-                json={
-                    "model": "phi3",
-                    "prompt": prompt,
-                    "stream": False,
-                    "format": "json"
+        response = await client.chat.completions.create(
+            model=OPENAI_MODEL,
+            temperature=0,
+            messages=[
+                {
+                    "role": "system",
+                    "content":
+                        "Return ONLY valid JSON."
                 },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
 
-                timeout=OLLAMA_TIMEOUT_SECONDS
-            )
-
-        data = response.json()
-
-        raw_response = data.get(
-            "response",
-            ""
+        raw_response = (
+            response
+            .choices[0]
+            .message.content
+            .strip()
         )
 
         parsed = json.loads(
-            raw_response.strip()
+            raw_response
         )
 
         parsed.setdefault(

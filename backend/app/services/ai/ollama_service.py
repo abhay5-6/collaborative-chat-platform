@@ -1,4 +1,4 @@
-import requests
+"""import requests
 
 from app.core.config import (
     OLLAMA_GENERATE_URL,
@@ -25,7 +25,7 @@ async def generate_room_answer(
         )
     )
 
-    prompt = f"""
+    prompt = f
 Room Context:
 {context}
 
@@ -33,7 +33,7 @@ User Question:
 {query}
 
 Answer using the room context whenever relevant.
-"""
+
 
     response = requests.post(
 
@@ -54,3 +54,4 @@ Answer using the room context whenever relevant.
 
     return data["response"]
     print("Room answer generated for room_id:", room_id, "with query:", query)
+"""

@@ -66,6 +66,8 @@ class Settings:
     memory_min_importance_score: int
     memory_min_content_length: int
     memory_max_content_length: int
+    openai_model: str
+    openai_embedding_model: str
 
 
 def load_settings() -> Settings:
@@ -167,6 +169,14 @@ def load_settings() -> Settings:
             "MEMORY_MAX_CONTENT_LENGTH",
             4000
         ),
+        openai_model=os.getenv(
+            "OPENAI_MODEL",
+            "gpt-4o-mini"
+        ),
+        openai_embedding_model=os.getenv(
+            "OPENAI_EMBEDDING_MODEL",
+            "text-embedding-3-small"
+        )
     )
 
 
@@ -198,3 +208,5 @@ MEMORY_MIN_IMPORTANCE_SCORE = (
 )
 MEMORY_MIN_CONTENT_LENGTH = settings.memory_min_content_length
 MEMORY_MAX_CONTENT_LENGTH = settings.memory_max_content_length
+OPENAI_MODEL = settings.openai_model
+OPENAI_EMBEDDING_MODEL = settings.openai_embedding_model

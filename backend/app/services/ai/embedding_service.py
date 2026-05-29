@@ -1,44 +1,44 @@
 import logging
 
-from sentence_transformers import SentenceTransformer
+from openai import AsyncOpenAI
 
-from app.core.config import EMBEDDING_MODEL_NAME
-
+from app.core.config import (
+    OPENAI_API_KEY,
+    OPENAI_EMBEDDING_MODEL,
+)
 
 logger = logging.getLogger(__name__)
-model: SentenceTransformer | None = None
+
+client = AsyncOpenAI(
+    api_key=OPENAI_API_KEY
+)
 
 
-def get_embedding_model() -> SentenceTransformer:
-    global model
-    print("Loading embedding model:", EMBEDDING_MODEL_NAME)
-
-    if model is None:
-        print("Loading embedding model:", EMBEDDING_MODEL_NAME)
-        logger.info(
-            "embedding_model_loading",
-            extra={
-                "model": EMBEDDING_MODEL_NAME
-            }
-        )
-        model = SentenceTransformer(
-            EMBEDDING_MODEL_NAME
-        )
-
-    return model
-
-
-def generate_embedding(
+async def generate_embedding(
     text: str
 ):
-    print("Generating embedding for text:", text)
-    embedding = get_embedding_model().encode(
-        text,
-        normalize_embeddings=True
-    )
-    print(
-    "Model object id:",
-        id(model)
+
+    logger.info(
+        "embedding_generation_started"
     )
 
-    return embedding.tolist()
+    response = await client.embeddings.create(
+        model=OPENAI_EMBEDDING_MODEL,
+        input=text
+    )
+
+    embedding = (
+        response.data[0]
+        .embedding
+    )
+
+    logger.info(
+        "embedding_generation_finished",
+        extra={
+            "dimensions": len(
+                embedding
+            )
+        }
+    )
+
+    return embedding
