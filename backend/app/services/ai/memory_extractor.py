@@ -1,13 +1,11 @@
 import httpx
 import json
 import logging
-import re
 
 from app.core.config import (
     OLLAMA_GENERATE_URL,
     OLLAMA_TIMEOUT_SECONDS
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -17,27 +15,30 @@ async def extract_memory_from_text(
 ):
 
     prompt = f"""
-You are an AI memory extraction system.
+Extract reusable long-term memory from the conversation.
 
-Analyze the following conversation text.
+Store:
+- useful knowledge
+- important facts
+- preferences
+- goals
+- plans
+- decisions
+- agreements
+- recurring interests
+- learning progress
 
-Determine whether it contains:
-- important decisions
-- architecture discussions
-- project knowledge
-- implementation details
-- reusable insights
-- determine the primary knowledge domain
+Return ONLY valid JSON.
 
-If important, return JSON in this format:
+Schema:
 
 {{
   "should_store": true,
-  "memory_type": "...",
-  "domain": "...",
-  "importance_score": 1-5,
-  "tags": ["..."],
-  "content": "..."
+  "memory_type": "knowledge",
+  "domain": "general",
+  "importance_score": 3,
+  "tags": [],
+  "content": "memory text"
 }}
 
 If not important:
@@ -46,11 +47,22 @@ If not important:
   "should_store": false
 }}
 
+Rules:
+- should_store must be true or false
+- importance_score must be integer 1-5
+- content must be a string
+- tags must be an array of strings
+- do not nest objects
+- do not explain anything
+- output only JSON
+
 Conversation:
 {text}
 """
 
-    logger.info("memory_extractor_started")
+    logger.info(
+        "memory_extractor_started"
+    )
 
     try:
 
@@ -61,23 +73,14 @@ Conversation:
                 OLLAMA_GENERATE_URL,
 
                 json={
-
                     "model": "phi3",
-
                     "prompt": prompt,
-
-                    "stream": False
+                    "stream": False,
+                    "format": "json"
                 },
 
                 timeout=OLLAMA_TIMEOUT_SECONDS
             )
-
-        logger.debug(
-            "memory_extractor_raw_response",
-            extra={
-                "response_text": response.text
-            }
-        )
 
         data = response.json()
 
@@ -86,30 +89,73 @@ Conversation:
             ""
         )
 
-        match = re.search(
-
-            r"\{.*\}",
-
-            raw_response,
-
-            re.DOTALL
+        parsed = json.loads(
+            raw_response.strip()
         )
 
-        if not match:
+        parsed.setdefault(
+            "should_store",
+            False
+        )
 
-            logger.warning(
-                "memory_extractor_no_json_found"
+        parsed.setdefault(
+            "memory_type",
+            "knowledge"
+        )
+
+        parsed.setdefault(
+            "domain",
+            "general"
+        )
+
+        parsed.setdefault(
+            "importance_score",
+            3
+        )
+
+        parsed.setdefault(
+            "tags",
+            []
+        )
+
+        parsed.setdefault(
+            "content",
+            ""
+        )
+
+        try:
+            parsed["importance_score"] = int(
+                parsed["importance_score"]
             )
+        except Exception:
+            parsed["importance_score"] = 3
 
-            return {
-                "should_store": False
-            }
+        parsed["content"] = str(
+            parsed["content"]
+        )
 
-        parsed = json.loads(
-            match.group()
+        if not isinstance(
+            parsed["tags"],
+            list
+        ):
+            parsed["tags"] = []
+
+        print(
+            "EXTRACTION RESULT:",
+            parsed
         )
 
         return parsed
+
+    except json.JSONDecodeError:
+
+        logger.warning(
+            "memory_extractor_invalid_json"
+        )
+
+        return {
+            "should_store": False
+        }
 
     except Exception:
 

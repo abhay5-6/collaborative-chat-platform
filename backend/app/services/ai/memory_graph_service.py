@@ -19,6 +19,7 @@ async def build_memory_relationships(
 
     new_memory
 ):
+    print("Building relationships for new memory_id:", new_memory.id, "in room_id:", new_memory.room_id)
 
     result = await db.execute(
 
@@ -64,3 +65,4 @@ async def build_memory_relationships(
         db.add(edge)
 
     await db.flush()
+    print("Relationships built for new memory_id:", new_memory.id)

@@ -17,6 +17,7 @@ async def extract_relationship(
 
     target_text: str
 ):
+    print("Extracting relationship between two memories with content lengths:", len(source_text), "and", len(target_text))
 
     prompt = f"""
 You are a memory relationship analyzer.
@@ -97,3 +98,4 @@ Memory B:
         )
 
         return None
+    print("Relationship extraction completed for memories with content lengths:", len(source_text), "and", len(target_text))

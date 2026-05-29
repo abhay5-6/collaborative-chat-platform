@@ -1,6 +1,7 @@
 def calculate_consensus_score(
     memory
 ):
+    
 
     total = (
 

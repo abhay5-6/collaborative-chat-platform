@@ -327,6 +327,7 @@ async def websocket_chat(
 
                     # Process AI memory in background
                     try:
+                        print("Scheduling memory extraction task")
                         asyncio.create_task(
                             process_memory_background(
                                 room_id,
@@ -335,6 +336,7 @@ async def websocket_chat(
                             )
                         )
                     except Exception:
+                        print("Failed to schedule memory extraction task")
                         logger.exception(
                             "memory_background_task_create_failed",
                             extra={

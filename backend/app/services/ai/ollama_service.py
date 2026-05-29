@@ -15,6 +15,7 @@ async def generate_room_answer(
     room_id: int,
     query: str
 ):
+    print("Generating room answer for room_id:", room_id, "with query:", query)
 
     context = await (
         build_room_context(
@@ -52,3 +53,4 @@ Answer using the room context whenever relevant.
     data = response.json()
 
     return data["response"]
+    print("Room answer generated for room_id:", room_id, "with query:", query)

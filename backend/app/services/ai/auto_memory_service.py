@@ -44,6 +44,7 @@ async def process_message_for_memory(
 
     message_content: str
 ):
+    print("Processing message for memory in room_id:", room_id, "by user_id:", user_id)
 
     result = await (
         extract_memory_from_text(
@@ -188,3 +189,4 @@ async def process_memory_background(
                     "user_id": user_id
                 }
             )
+        

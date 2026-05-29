@@ -153,7 +153,7 @@ def load_settings() -> Settings:
         ),
         ollama_timeout_seconds=_get_int_env(
             "OLLAMA_TIMEOUT_SECONDS",
-            30
+            3000
         ),
         memory_min_importance_score=_get_int_env(
             "MEMORY_MIN_IMPORTANCE_SCORE",

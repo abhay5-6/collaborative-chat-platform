@@ -27,6 +27,7 @@ async def create_room_memory(
 
     domain: str = "general",
 ):
+    print("Creating new memory in room_id:", room_id, "with content length:", len(content))
 
     if tags is None:
 
@@ -60,3 +61,4 @@ async def create_room_memory(
     await db.refresh(memory)
 
     return memory
+    print("Memory created with id:", memory.id, "in room_id:", room_id)

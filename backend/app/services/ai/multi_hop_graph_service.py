@@ -39,6 +39,7 @@ async def multi_hop_graph_retrieval(
 
     max_depth: int = 2
 ):
+    print("Starting multi-hop graph retrieval for room_id:", room_id, "with query:", query)
 
     primary_memories = await (
         search_room_memories(
@@ -156,3 +157,4 @@ async def multi_hop_graph_retrieval(
             )
 
     return collected_memories
+    print("Multi-hop graph retrieval completed for room_id:", room_id, "with query:", query, "retrieved memories count:", len(collected_memories))

@@ -74,6 +74,7 @@ async def search_room_memories(
 
     top_k: int = 5
 ):
+    print("Searching room memories for room_id:", room_id, "with query:", query)
 
     query_embedding = (
         generate_embedding(query)
@@ -241,3 +242,4 @@ async def search_room_memories(
     await db.commit()
 
     return top_memories
+    print("Completed searching room memories for room_id:", room_id, "with query:", query, "retrieved memories count:", len(top_memories))

@@ -6,6 +6,7 @@ from datetime import (
 def calculate_decay_factor(
     memory
 ):
+    print("Calculating decay factor for memory_id:", memory.id)
 
     days_since_access = (
 
@@ -27,3 +28,4 @@ def calculate_decay_factor(
     )
 
     return decay
+    

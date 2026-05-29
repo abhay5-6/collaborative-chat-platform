@@ -21,6 +21,7 @@ async def build_room_graph(
 
     room_id: int
 ):
+    print("Building graph for room_id:", room_id)
 
     memory_result = await db.execute(
 
@@ -114,3 +115,4 @@ async def build_room_graph(
 
         "edges": edges
     }
+    print("Graph built with", len(nodes), "nodes and", len(edges), "edges")

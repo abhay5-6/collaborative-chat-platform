@@ -4,6 +4,7 @@ def calculate_resurfacing_boost(
 
     memory
 ):
+    print("Calculating resurfacing boost for memory_id:", memory.id, "with similarity:", similarity)
 
     if similarity < 0.8:
         return 1.0

@@ -23,7 +23,7 @@ async def graph_enhanced_retrieval(
 
     top_k: int = 5
 ):
-
+    print("Starting graph-enhanced retrieval for room_id:", room_id, "with query:", query)
     primary_memories = await (
         search_room_memories(
 
@@ -98,3 +98,4 @@ async def graph_enhanced_retrieval(
         primary_memories
         + related_memories
     )
+    print("Graph-enhanced retrieval completed for room_id:", room_id)

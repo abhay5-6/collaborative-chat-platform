@@ -15,7 +15,7 @@ async def find_similar_memory(
 
     threshold: float = 0.92
 ):
-
+    print("Finding similar memory for room_id:", room_id, "with threshold:", threshold)
     similarity_expr = (
         1 -
         RoomMemory.embedding.cosine_distance(
@@ -68,4 +68,5 @@ async def find_similar_memory(
     if similarity < threshold:
         return None
 
+    print("Similar memory found for room_id:", room_id, "with similarity:", similarity)
     return memory

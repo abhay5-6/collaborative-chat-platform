@@ -15,6 +15,7 @@ async def build_room_context(
 
     query: str
 ):
+    print("Building context for room_id:", room_id, "with query:", query)
 
     memories = await (
         multi_hop_graph_retrieval(
@@ -35,6 +36,7 @@ async def build_room_context(
             "No relevant room memories found."
         )
 
+    print("Retrieved memories:", len(memories))
     domain_groups = {}
 
     for memory in memories:
@@ -90,4 +92,5 @@ Content:
         context_parts
     )
 
+    print("Context built with", len(context_parts), "sections")
     return context

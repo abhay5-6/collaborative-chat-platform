@@ -28,6 +28,7 @@ async def generate_memory_summary(
 
     created_by: int
 ):
+    print("Generating memory summary for room_id:", room_id, "with topic_query:", topic_query)
 
     memories = await (
         search_room_memories(
@@ -124,3 +125,4 @@ Memories:
             stored_summary.id
         )
     }
+    print("Memory summary generated and stored with id:", stored_summary.id, "in room_id:", room_id)
