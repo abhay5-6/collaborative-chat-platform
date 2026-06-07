@@ -1,6 +1,13 @@
+# Rework - Real-Time Collaboration Platform
+
+Live Demo: https://rework-hu9apeyxg-abhay5-6s-projects.vercel.app/
+
 A modern real-time collaborative chat platform built with FastAPI, Next.js, PostgreSQL, and WebSockets.
 
 Rework combines real-time communication, room-based collaboration, moderation tools, hierarchy systems, and live notifications into a scalable full-stack architecture.
+
+## demo
+demo in /demo
 
 Features
 Authentication
