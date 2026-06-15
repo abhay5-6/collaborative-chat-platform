@@ -1,8 +1,9 @@
 from openai import AsyncOpenAI
 
 from app.core.config import (
-    OPENAI_API_KEY,
-    OPENAI_MODEL
+    GEMINI_API_KEY,
+    GEMINI_MODEL,
+    GEMINI_EMBEDDING_MODEL
 )
 
 from app.services.ai.context_builder import (
@@ -10,7 +11,7 @@ from app.services.ai.context_builder import (
 )
 
 client = AsyncOpenAI(
-    api_key=OPENAI_API_KEY
+    api_key=GEMINI_API_KEY
 )
 
 
@@ -34,7 +35,7 @@ async def generate_room_answer(
 
     completion = await client.chat.completions.create(
 
-        model=OPENAI_MODEL,
+        model=GEMINI_MODEL,
 
         messages=[
             {

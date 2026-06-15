@@ -1,16 +1,17 @@
 import logging
 
-from openai import AsyncOpenAI
+from google import genai
 
 from app.core.config import (
-    OPENAI_API_KEY,
-    OPENAI_EMBEDDING_MODEL,
+    GEMINI_API_KEY,
+    GEMINI_MODEL,
+    GEMINI_EMBEDDING_MODEL
 )
 
 logger = logging.getLogger(__name__)
 
-client = AsyncOpenAI(
-    api_key=OPENAI_API_KEY
+client = genai.Client(
+    api_key=GEMINI_API_KEY
 )
 
 
@@ -23,7 +24,7 @@ async def generate_embedding(
     )
 
     response = await client.embeddings.create(
-        model=OPENAI_EMBEDDING_MODEL,
+        model=GEMINI_EMBEDDING_MODEL,
         input=text
     )
 

@@ -53,9 +53,9 @@ class Settings:
     backend_cors_origins: list[str]
     websocket_allowed_origins: list[str]
 
-    openai_api_key: str | None
-    openai_model: str
-    openai_embedding_model: str
+    gemini_api_key: str | None
+    gemini_model: str
+    gemini_embedding_model: str
 
     websocket_message_rate_limit: int
     websocket_rate_limit_window_seconds: int
@@ -136,18 +136,18 @@ def load_settings() -> Settings:
 
         websocket_allowed_origins=websocket_origins,
 
-        openai_api_key=os.getenv(
-            "OPENAI_API_KEY"
+        gemini_api_key=os.getenv(
+            "GEMINI_API_KEY"
         ),
 
-        openai_model=os.getenv(
-            "OPENAI_MODEL",
-            "gpt-4o-mini"
+        gemini_model=os.getenv(
+            "GEMINI_MODEL",
+            "gemini-2.5-flash"
         ),
 
-        openai_embedding_model=os.getenv(
-            "OPENAI_EMBEDDING_MODEL",
-            "text-embedding-3-small"
+        gemini_embedding_model=os.getenv(
+            "GEMINI_EMBEDDING_MODEL",
+            "text-embedding-004"
         ),
 
         websocket_message_rate_limit=_get_int_env(
@@ -226,16 +226,16 @@ WEBSOCKET_ALLOWED_ORIGINS = (
     settings.websocket_allowed_origins
 )
 
-OPENAI_API_KEY = (
-    settings.openai_api_key
+GEMINI_API_KEY = (
+    settings.gemini_api_key
 )
 
-OPENAI_MODEL = (
-    settings.openai_model
+GEMINI_MODEL = (
+    settings.gemini_model
 )
 
-OPENAI_EMBEDDING_MODEL = (
-    settings.openai_embedding_model
+GEMINI_EMBEDDING_MODEL = (
+    settings.gemini_embedding_model
 )
 
 LOGIN_RATE_LIMIT = (

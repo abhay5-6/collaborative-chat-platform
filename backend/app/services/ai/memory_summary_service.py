@@ -1,8 +1,9 @@
 from openai import AsyncOpenAI
 
 from app.core.config import (
-    OPENAI_API_KEY,
-    OPENAI_MODEL
+    GEMINI_API_KEY,
+    GEMINI_MODEL,
+    GEMINI_EMBEDDING_MODEL
 )
 
 from app.services.ai.retrieval_service import (
@@ -18,7 +19,7 @@ from app.services.ai.embedding_service import (
 )
 
 client = AsyncOpenAI(
-    api_key=OPENAI_API_KEY
+    api_key=GEMINI_API_KEY
 )
 
 
@@ -82,7 +83,7 @@ Memories:
 
     response = await client.chat.completions.create(
 
-        model=OPENAI_MODEL,
+        model=GEMINI_MODEL,
 
         temperature=0,
 
