@@ -76,7 +76,7 @@ async def search_room_memories(
 ):
     print("Searching room memories for room_id:", room_id, "with query:", query)
 
-    query_embedding = (
+    query_embedding =await(
         generate_embedding(query)
     )
 

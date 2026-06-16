@@ -1,5 +1,6 @@
 from datetime import datetime
-
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import JSON, String ,DateTime
 from sqlalchemy import ForeignKey, Index, Text
 from sqlalchemy.orm import (
     Mapped,
@@ -41,4 +42,24 @@ class Message(Base):
 
     created_at: Mapped[datetime] = mapped_column(
         default=datetime.utcnow
+    )
+    embedding: Mapped[list | None] = (
+        mapped_column(
+            Vector(384),
+            nullable=True
+        )
+    )
+
+    message_type: Mapped[str] = (
+        mapped_column(
+            String(50),
+            default="chat"
+        )
+    )
+
+    extra_data: Mapped[dict] = (
+        mapped_column(
+            JSON,
+            default=dict
+        )
     )

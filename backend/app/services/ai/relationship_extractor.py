@@ -6,7 +6,6 @@ from openai import AsyncOpenAI
 from app.core.config import (
     GEMINI_API_KEY,
     GEMINI_MODEL,
-    GEMINI_EMBEDDING_MODEL
 )
 
 logger = logging.getLogger(__name__)

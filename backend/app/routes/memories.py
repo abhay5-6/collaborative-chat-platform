@@ -37,7 +37,7 @@ from app.services.ai.retrieval_service import (
     search_room_memories
 )
 
-from backend.app.services.ai.ai_client import (
+from app.services.ai.ai_client import (
     generate_room_answer
 )
 

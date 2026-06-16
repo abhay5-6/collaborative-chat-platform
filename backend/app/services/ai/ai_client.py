@@ -3,7 +3,7 @@ from openai import AsyncOpenAI
 from app.core.config import (
     GEMINI_API_KEY,
     GEMINI_MODEL,
-    GEMINI_EMBEDDING_MODEL
+
 )
 
 from app.services.ai.context_builder import (

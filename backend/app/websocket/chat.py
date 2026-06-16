@@ -332,7 +332,8 @@ async def websocket_chat(
                             process_memory_background(
                                 room_id,
                                 user.id,
-                                content
+                                saved_message.id,
+                                saved_message.content
                             )
                         )
                     except Exception:

@@ -1,34 +1,30 @@
-from sqlalchemy import (
-    Column,
-    Integer,
-    ForeignKey,
-    Text,
-    String,
-    DateTime,
-    JSON,
-    Float,
-    Index
-)
-
-from pgvector.sqlalchemy import (
-    Vector
-)
 from datetime import datetime
 
-from sqlalchemy.orm import (
-    Mapped,
-    mapped_column,
+from sqlalchemy import (
+Integer,
+ForeignKey,
+Text,
+String,
+DateTime,
+JSON,
+Float,
+Index
 )
 
-from app.db.database import Base
-
-import numpy as np
+from sqlalchemy.orm import (
+Mapped,
+mapped_column,
+)
 
 from pgvector.sqlalchemy import Vector
 
+from app.db.database import Base
+
 class RoomMemory(Base):
 
+
     __tablename__ = "room_memories"
+
     __table_args__ = (
         Index("ix_room_memories_room_id", "room_id"),
         Index("ix_room_memories_created_by", "created_by"),
@@ -61,6 +57,17 @@ class RoomMemory(Base):
         String(50),
         default="note"
     )
+
+    source_type: Mapped[str] = mapped_column(
+        String(50),
+        default="message"
+    )
+
+    source_id: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True
+    )
+
     domain: Mapped[str] = mapped_column(
         String(100),
         default="general"
@@ -69,6 +76,11 @@ class RoomMemory(Base):
     importance_score: Mapped[int] = mapped_column(
         Integer,
         default=1
+    )
+
+    confidence_score: Mapped[float] = mapped_column(
+        Float,
+        default=1.0
     )
 
     tags: Mapped[list] = mapped_column(
@@ -81,6 +93,21 @@ class RoomMemory(Base):
         default=0
     )
 
+    times_referenced: Mapped[int] = mapped_column(
+        Integer,
+        default=1
+    )
+
+    agreement_count: Mapped[int] = mapped_column(
+        Integer,
+        default=0
+    )
+
+    disagreement_count: Mapped[int] = mapped_column(
+        Integer,
+        default=0
+    )
+
     embedding: Mapped[list] = mapped_column(
         Vector(384)
     )
@@ -89,41 +116,14 @@ class RoomMemory(Base):
         DateTime,
         default=datetime.utcnow
     )
-    importance_score = Column(Integer, default=1)
 
-    confidence_score = Column(Float, default=1.0)
-
-    times_referenced = Column(Integer, default=1)
-
-    last_reinforced_at = Column(
+    last_accessed_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.utcnow
     )
-    last_accessed_at: Mapped[datetime] = (
-        mapped_column(
-            DateTime,
-            default=datetime.utcnow
-        )
+
+    last_reinforced_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow
     )
 
-    decay_factor: Mapped[float] = (
-        mapped_column(
-            default=1.0
-        )
-    )
-    confidence_score: Mapped[float] = (
-        mapped_column(
-            default=1.0
-        )
-    )
-    agreement_count: Mapped[int] = (
-        mapped_column(
-            default=0
-        )
-    )
-
-    disagreement_count: Mapped[int] = (
-        mapped_column(
-            default=0
-        )
-    )

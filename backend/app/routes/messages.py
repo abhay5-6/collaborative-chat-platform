@@ -86,7 +86,9 @@ async def create_message(
 
         current_user.id,
 
-        message.content
+        message_id=created_message.id,
+
+        message_content=created_message.content
     )
 
     return created_message

@@ -6,7 +6,6 @@ from openai import AsyncOpenAI
 from app.core.config import (
     GEMINI_API_KEY,
     GEMINI_MODEL,
-    GEMINI_EMBEDDING_MODEL
 )
 
 logger = logging.getLogger(__name__)
@@ -21,25 +20,26 @@ async def extract_memory_from_text(
 ):
 
     prompt = f"""
-Extract reusable long-term memory from the conversation.
+Extract reusable knowledge from this message.
 
-Store:
-- useful knowledge
-- important facts
-- preferences
-- goals
-- plans
+Create a memory ONLY if the message contains:
+
 - decisions
+- plans
+- goals
+- facts
+- preferences
 - agreements
+- architecture choices
+- project knowledge
 - recurring interests
-- learning progress
+- important learnings
 
 Return ONLY valid JSON.
 
 Schema:
 
 {{
-  "should_store": true,
   "memory_type": "knowledge",
   "domain": "general",
   "importance_score": 3,
@@ -47,22 +47,17 @@ Schema:
   "content": "memory text"
 }}
 
-If not important:
-
-{{
-  "should_store": false
-}}
+Return null if there is no useful knowledge.
 
 Rules:
-- should_store must be true or false
 - importance_score must be integer 1-5
-- content must be a string
-- tags must be an array of strings
+- content must be concise
+- tags must be array of strings
 - do not nest objects
 - do not explain anything
-- output only JSON
+- output only JSON or null
 
-Conversation:
+Message:
 {text}
 """
 
@@ -79,7 +74,7 @@ Conversation:
                 {
                     "role": "system",
                     "content":
-                        "Return ONLY valid JSON."
+                        "Return ONLY valid JSON or null."
                 },
                 {
                     "role": "user",
@@ -95,13 +90,14 @@ Conversation:
             .strip()
         )
 
+        if (
+            raw_response.lower()
+            == "null"
+        ):
+            return None
+
         parsed = json.loads(
             raw_response
-        )
-
-        parsed.setdefault(
-            "should_store",
-            False
         )
 
         parsed.setdefault(
@@ -138,7 +134,7 @@ Conversation:
 
         parsed["content"] = str(
             parsed["content"]
-        )
+        ).strip()
 
         if not isinstance(
             parsed["tags"],
@@ -146,9 +142,11 @@ Conversation:
         ):
             parsed["tags"] = []
 
-        print(
-            "EXTRACTION RESULT:",
-            parsed
+        if not parsed["content"]:
+            return None
+
+        logger.info(
+            "memory_extractor_finished"
         )
 
         return parsed
@@ -159,9 +157,7 @@ Conversation:
             "memory_extractor_invalid_json"
         )
 
-        return {
-            "should_store": False
-        }
+        return None
 
     except Exception:
 
@@ -169,6 +165,4 @@ Conversation:
             "memory_extraction_failed"
         )
 
-        return {
-            "should_store": False
-        }
+        return None
