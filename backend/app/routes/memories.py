@@ -1,3 +1,5 @@
+from typing import List
+
 from fastapi import (
     APIRouter,
     Depends,
@@ -41,6 +43,10 @@ from app.services.ai.ai_client import (
     generate_room_answer
 )
 
+from app.services.ai.hybrid_retrieval_service import (
+    retrieve_context
+)
+
 router = APIRouter(
     prefix="/rooms",
     tags=["Memories"]
@@ -79,7 +85,8 @@ async def add_room_memory(
 
 
 @router.get(
-    "/{room_id}/memories/search"
+    "/{room_id}/memories/search",
+    response_model=List[RoomMemoryResponse]
 )
 @limiter.limit(settings.ai_rate_limit)
 async def semantic_memory_search(
@@ -97,6 +104,27 @@ async def semantic_memory_search(
     )
 
     return memories
+
+
+@router.get("/{room_id}/search")
+@limiter.limit(settings.ai_rate_limit)
+async def hybrid_search(
+    request: Request,
+    room_id: int,
+    query: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+
+    result = await retrieve_context(
+        db=db,
+        room_id=room_id,
+        query=query,
+        memory_limit=5,
+        message_limit=10
+    )
+
+    return result
 
 
 @router.get(

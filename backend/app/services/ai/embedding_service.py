@@ -1,4 +1,6 @@
+import asyncio
 import logging
+from functools import partial
 
 from sentence_transformers import (
     SentenceTransformer
@@ -18,10 +20,12 @@ async def generate_embedding(
         "embedding_generation_started"
     )
 
-    embedding = (
-        model.encode(text)
-        .tolist()
+    loop = asyncio.get_event_loop()
+    embedding = await loop.run_in_executor(
+        None,
+        partial(model.encode, text)
     )
+    embedding = embedding.tolist()
 
     logger.info(
         "embedding_generation_finished",

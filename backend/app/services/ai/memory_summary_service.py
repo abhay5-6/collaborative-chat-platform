@@ -1,4 +1,4 @@
-from openai import AsyncOpenAI
+from google import genai
 
 from app.core.config import (
     GEMINI_API_KEY,
@@ -18,7 +18,7 @@ from app.services.ai.embedding_service import (
     generate_embedding
 )
 
-client = AsyncOpenAI(
+client = genai.Client(
     api_key=GEMINI_API_KEY
 )
 
@@ -81,30 +81,12 @@ Memories:
 {memory_text}
 """
 
-    response = await client.chat.completions.create(
-
+    response = client.models.generate_content(
         model=GEMINI_MODEL,
-
-        temperature=0,
-
-        messages=[
-            {
-                "role": "system",
-                "content":
-                    "You are an AI project memory summarizer."
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
+        contents=prompt,
     )
 
-    summary = (
-        response.choices[0]
-        .message.content
-        .strip()
-    )
+    summary = response.text.strip()
 
     summary_embedding = await (
         generate_embedding(

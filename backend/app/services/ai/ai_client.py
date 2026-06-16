@@ -1,16 +1,15 @@
-from openai import AsyncOpenAI
+from google import genai
 
 from app.core.config import (
     GEMINI_API_KEY,
     GEMINI_MODEL,
-
 )
 
 from app.services.ai.context_builder import (
     build_room_context
 )
 
-client = AsyncOpenAI(
+client = genai.Client(
     api_key=GEMINI_API_KEY
 )
 
@@ -18,71 +17,55 @@ client = AsyncOpenAI(
 async def generate_room_answer(
     db,
     room_id: int,
-    query: str
+    query: str,
 ):
     print(
         "Generating room answer for room_id:",
         room_id,
         "with query:",
-        query
+        query,
     )
 
     context = await build_room_context(
-        db,
-        room_id,
-        query
+        db=db,
+        room_id=room_id,
+        query=query,
     )
 
-    completion = await client.chat.completions.create(
+    prompt = f"""
+You are Rework AI.
 
+Answer questions using the room memories,
+retrieved messages, and room context.
+
+If relevant information exists in memory,
+use it.
+
+If information comes from retrieved messages,
+use it.
+
+If context is incomplete, answer normally
+and clearly indicate uncertainty.
+
+ROOM CONTEXT:
+
+{context}
+
+USER QUESTION:
+
+{query}
+"""
+
+    response = client.models.generate_content(
         model=GEMINI_MODEL,
-
-        messages=[
-            {
-                "role": "system",
-                "content":
-                """
-                You are Rework AI.
-
-                Answer questions using the room
-                memories and room context.
-
-                If relevant information exists
-                in memory, use it.
-
-                If memory is incomplete,
-                answer normally while making
-                it clear what comes from memory.
-                """
-            },
-            {
-                "role": "user",
-                "content":
-                f"""
-                Room Context:
-
-                {context}
-
-                User Question:
-
-                {query}
-                """
-            }
-        ],
-
-        temperature=0.3
+        contents=prompt,
     )
 
-    answer = (
-        completion
-        .choices[0]
-        .message
-        .content
-    )
+    answer = response.text
 
     print(
         "Room answer generated for room_id:",
-        room_id
+        room_id,
     )
 
     return answer

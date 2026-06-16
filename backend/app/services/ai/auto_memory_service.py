@@ -59,6 +59,8 @@ async def process_message_for_memory(
         message_content
     )
 
+    print(f"STEP 1 DONE: Message embedding generated (dims={len(message_embedding)})")
+
     message = await db.get(
         Message,
         message_id
@@ -75,6 +77,7 @@ async def process_message_for_memory(
                 "message_id": message_id,
             },
         )
+        print(f"STEP 1 DONE: Message embedding persisted")
 
     # STEP 2 - Extract memory candidate
 
@@ -82,7 +85,10 @@ async def process_message_for_memory(
         message_content
     )
 
+    print(f"STEP 2 DONE: Memory extraction result={result}")
+
     if not result:
+        print("STEP 2: No memory extracted, returning")
         return None
 
     content = str(
@@ -123,6 +129,8 @@ async def process_message_for_memory(
         content
     )
 
+    print(f"STEP 3 DONE: Memory embedding generated (dims={len(embedding)})")
+
     # STEP 4 - Deduplication / reinforcement
 
     similar_memory = await find_similar_memory(
@@ -130,6 +138,8 @@ async def process_message_for_memory(
         room_id=room_id,
         embedding=embedding,
     )
+
+    print(f"STEP 4 DONE: Dedup check, similar_memory={similar_memory is not None}")
 
     if similar_memory:
 
@@ -152,6 +162,7 @@ async def process_message_for_memory(
             },
         )
 
+        print(f"STEP 4: Memory reinforced (id={similar_memory.id})")
         return similar_memory
 
     # STEP 5 - Create new memory
@@ -179,11 +190,13 @@ async def process_message_for_memory(
         ),
     )
 
+    print(f"STEP 5 DONE: Memory created (id={memory.id})")
+
     # STEP 6 - Build graph relationships
 
     await build_memory_relationships(
         db=db,
-        memory=memory,
+        new_memory=memory,
     )
 
     logger.info(
@@ -195,8 +208,9 @@ async def process_message_for_memory(
         },
     )
 
-    return memory
+    print(f"STEP 6 DONE: Graph relationships built for memory (id={memory.id})")
 
+    return memory
 
 async def process_memory_background(
     room_id: int,
@@ -204,6 +218,8 @@ async def process_memory_background(
     message_id: int,
     message_content: str,
 ):
+    print(f"BACKGROUND TASK STARTED: room_id={room_id}, user_id={user_id}, message_id={message_id}")
+
     async with AsyncSessionLocal() as db:
 
         try:
@@ -218,7 +234,11 @@ async def process_memory_background(
                     message_content=message_content,
                 )
 
-        except Exception:
+            print(f"BACKGROUND TASK COMPLETED: room_id={room_id}, message_id={message_id}")
+
+        except Exception as e:
+
+            print(f"BACKGROUND TASK FAILED: {str(e)}")
 
             logger.exception(
                 "background_memory_processing_failed",

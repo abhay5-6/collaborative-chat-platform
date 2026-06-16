@@ -1,7 +1,7 @@
 import json
 import logging
 
-from openai import AsyncOpenAI
+from google import genai
 
 from app.core.config import (
     GEMINI_API_KEY,
@@ -10,7 +10,7 @@ from app.core.config import (
 
 logger = logging.getLogger(__name__)
 
-client = AsyncOpenAI(
+client = genai.Client(
     api_key=GEMINI_API_KEY
 )
 
@@ -57,30 +57,12 @@ Memory B:
 
     try:
 
-        response = await client.chat.completions.create(
-
+        response = client.models.generate_content(
             model=GEMINI_MODEL,
-
-            temperature=0,
-
-            messages=[
-                {
-                    "role": "system",
-                    "content":
-                        "Return ONLY valid JSON."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
+            contents=prompt,
         )
 
-        raw_response = (
-            response.choices[0]
-            .message.content
-            .strip()
-        )
+        raw_response = response.text.strip()
 
         parsed = json.loads(
             raw_response

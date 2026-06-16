@@ -74,11 +74,10 @@ async def search_room_memories(
 
     top_k: int = 5
 ):
-    print("Searching room memories for room_id:", room_id, "with query:", query)
+    print(f"SEARCH START: room_id={room_id}, query='{query}'")
 
-    query_embedding =await(
-        generate_embedding(query)
-    )
+    query_embedding = await generate_embedding(query)
+    print(f"SEARCH: Query embedding dims={len(query_embedding)}")
 
     similarity_expr = (
         1 -
@@ -118,15 +117,21 @@ async def search_room_memories(
 
     rows = result.all()
 
+    print(f"SEARCH: Found {len(rows)} raw results from DB")
+
     scored_memories = []
 
     for memory, similarity in rows:
 
         if similarity is None:
+            print(f"  Memory {memory.id}: SKIP (similarity=None)")
             continue
 
-        if similarity < 0.45:
+        if similarity < 0.30:
+            print(f"  Memory {memory.id}: SKIP (similarity={similarity:.3f} < 0.30)")
             continue
+
+        print(f"  Memory {memory.id}: similarity={similarity:.3f}, content='{memory.content[:50]}...'")
 
         importance_weight = (
             memory.importance_score
@@ -230,6 +235,8 @@ async def search_room_memories(
             scored_memories[:top_k]
         )
     ]
+
+    print(f"SEARCH RESULT: Returning {len(top_memories)} memories from {len(scored_memories)} scored")
 
     for memory in top_memories:
 

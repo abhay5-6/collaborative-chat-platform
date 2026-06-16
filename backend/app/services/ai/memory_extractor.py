@@ -1,7 +1,7 @@
 import json
 import logging
 
-from openai import AsyncOpenAI
+from google import genai
 
 from app.core.config import (
     GEMINI_API_KEY,
@@ -10,7 +10,7 @@ from app.core.config import (
 
 logger = logging.getLogger(__name__)
 
-client = AsyncOpenAI(
+client = genai.Client(
     api_key=GEMINI_API_KEY
 )
 
@@ -20,9 +20,9 @@ async def extract_memory_from_text(
 ):
 
     prompt = f"""
-Extract reusable knowledge from this message.
+Extract reusable long-term knowledge from this message.
 
-Create a memory ONLY if the message contains:
+Create a memory whenever the message contains ANY potentially useful future information, including:
 
 - decisions
 - plans
@@ -30,12 +30,19 @@ Create a memory ONLY if the message contains:
 - facts
 - preferences
 - agreements
-- architecture choices
+- requirements
 - project knowledge
+- architecture choices
+- technical discussions
+- bugs
+- fixes
+- learnings
+- progress updates
+- meeting notes
 - recurring interests
-- important learnings
+- implementation details
 
-Return ONLY valid JSON.
+Return ONLY valid JSON or null.
 
 Schema:
 
@@ -47,17 +54,49 @@ Schema:
   "content": "memory text"
 }}
 
-Return null if there is no useful knowledge.
+Allowed memory_type values:
+
+- knowledge
+- decision
+- task
+- goal
+- plan
+- bug
+- fix
+- requirement
+- preference
+- architecture
+- learning
+- fact
+- meeting_note
+
+Allowed domain values:
+
+- general
+- backend
+- frontend
+- database
+- ai
+- authentication
+- deployment
+- devops
+- testing
+- product
+- business
 
 Rules:
+
 - importance_score must be integer 1-5
-- content must be concise
-- tags must be array of strings
+- preserve important context
+- content should be concise but complete
+- tags must be an array of strings
 - do not nest objects
 - do not explain anything
 - output only JSON or null
+- if the message contains any reusable future information, create a memory
 
 Message:
+
 {text}
 """
 
@@ -67,27 +106,23 @@ Message:
 
     try:
 
-        response = await client.chat.completions.create(
+        response = client.models.generate_content(
             model=GEMINI_MODEL,
-            temperature=0,
-            messages=[
-                {
-                    "role": "system",
-                    "content":
-                        "Return ONLY valid JSON or null."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
+            contents=prompt,
         )
 
+        raw_response = response.text.strip()
+
         raw_response = (
-            response
-            .choices[0]
-            .message.content
+            raw_response
+            .replace("```json", "")
+            .replace("```", "")
             .strip()
+        )
+
+        print(
+            "RAW MEMORY RESPONSE:",
+            raw_response
         )
 
         if (
@@ -131,6 +166,14 @@ Message:
             )
         except Exception:
             parsed["importance_score"] = 3
+
+        parsed["importance_score"] = max(
+            1,
+            min(
+                5,
+                parsed["importance_score"]
+            )
+        )
 
         parsed["content"] = str(
             parsed["content"]

@@ -2,8 +2,8 @@ from sqlalchemy.ext.asyncio import (
     AsyncSession
 )
 
-from app.services.ai.multi_hop_graph_service import (
-    multi_hop_graph_retrieval
+from app.services.ai.hybrid_retrieval_service import (
+    retrieve_context
 )
 
 
@@ -15,55 +15,99 @@ async def build_room_context(
 
     query: str
 ):
-    print("Building context for room_id:", room_id, "with query:", query)
-
-    memories = await (
-        multi_hop_graph_retrieval(
-
-            db=db,
-
-            room_id=room_id,
-
-            query=query,
-
-            top_k=5
-        )
+    print(
+        "Building context for room_id:",
+        room_id,
+        "with query:",
+        query
     )
 
-    if not memories:
+    retrieval_result = await retrieve_context(
+        db=db,
+        room_id=room_id,
+        query=query,
+        memory_limit=5,
+        message_limit=10
+    )
 
-        return (
-            "No relevant room memories found."
-        )
-
-    print("Retrieved memories:", len(memories))
-    domain_groups = {}
-
-    for memory in memories:
-
-        domain = memory.domain
-
-        if domain not in domain_groups:
-
-            domain_groups[domain] = []
-
-        domain_groups[domain].append(
-            memory
-        )
+    messages = retrieval_result["messages"]
+    memories = retrieval_result["memories"]
 
     context_parts = []
 
-    for domain, domain_memories in (
-        domain_groups.items()
-    ):
+    #
+    # Relevant Messages
+    #
 
-        section = [
-            f"=== {domain.upper()} DOMAIN ==="
+    if messages:
+
+        message_section = [
+            "=== RELEVANT MESSAGES ==="
         ]
 
-        for memory in domain_memories:
+        for message in messages:
 
-            formatted_memory = f"""
+            formatted_message = f"""
+Score:
+{round(message["score"], 3)}
+
+Message:
+{message["content"]}
+"""
+
+            message_section.append(
+                formatted_message
+            )
+
+        context_parts.append(
+            "\n".join(
+                message_section
+            )
+        )
+
+    #
+    # Relevant Memories
+    #
+
+    if memories:
+
+        domain_groups = {}
+
+        for memory in memories:
+
+            domain = (
+                memory.domain
+                or "general"
+            )
+
+            if domain not in domain_groups:
+
+                domain_groups[
+                    domain
+                ] = []
+
+            domain_groups[
+                domain
+            ].append(
+                memory
+            )
+
+        for (
+            domain,
+            domain_memories
+        ) in domain_groups.items():
+
+            section = [
+                f"=== {domain.upper()} DOMAIN ==="
+            ]
+
+            for memory in domain_memories:
+
+                tags = ", ".join(
+                    memory.tags or []
+                )
+
+                formatted_memory = f"""
 Memory Type:
 {memory.memory_type}
 
@@ -74,23 +118,38 @@ Times Referenced:
 {memory.times_referenced}
 
 Tags:
-{", ".join(memory.tags)}
+{tags}
 
 Content:
 {memory.content}
 """
 
-            section.append(
-                formatted_memory
+                section.append(
+                    formatted_memory
+                )
+
+            context_parts.append(
+                "\n".join(section)
             )
 
-        context_parts.append(
-            "\n".join(section)
+    #
+    # Empty Context
+    #
+
+    if not context_parts:
+
+        return (
+            "No relevant messages or memories found."
         )
 
     context = "\n---\n".join(
         context_parts
     )
 
-    print("Context built with", len(context_parts), "sections")
+    print(
+        "Context built with",
+        len(context_parts),
+        "sections"
+    )
+
     return context
