@@ -22,6 +22,7 @@ import {
   Wifi,
   Users,
   SendHorizonal,
+  Sparkles,
 } from "lucide-react";
 
 import { toast }
@@ -51,6 +52,8 @@ import {
   sendCollaborationRequest,
   getCollaborators,
 } from "@/lib/api/collaborators";
+
+import AIAssistantPanel from "@/components/ai/AIAssistantPanel";
 
 
 type Message = {
@@ -149,6 +152,9 @@ export default function RoomPage() {
   ] = useState(
     "Connecting..."
   );
+
+  const [aiPanelOpen, setAiPanelOpen] =
+    useState(false);
 
   const [loading, setLoading] =
     useState(true);
@@ -837,6 +843,36 @@ export default function RoomPage() {
 
               </div>
 
+              {/* AI ASSISTANT BUTTON */}
+              <button
+                onClick={() =>
+                  setAiPanelOpen(
+                    !aiPanelOpen
+                  )
+                }
+                className={`
+                  flex
+                  items-center
+                  gap-2
+                  px-4
+                  py-2
+                  rounded-xl
+                  text-sm
+                  font-semibold
+                  transition
+                  ${aiPanelOpen
+                    ? "bg-blue-600 text-white"
+                    : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                  }
+                `}
+              >
+
+                <Sparkles size={16} />
+
+                AI
+
+              </button>
+
               <div className="
                 flex
                 items-center
@@ -1358,6 +1394,15 @@ export default function RoomPage() {
         </div>
 
       </div>
+
+      {/* AI ASSISTANT PANEL */}
+      <AIAssistantPanel
+        roomId={roomId}
+        isOpen={aiPanelOpen}
+        onToggle={() =>
+          setAiPanelOpen(!aiPanelOpen)
+        }
+      />
 
     </div>
   );
