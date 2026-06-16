@@ -1,4 +1,4 @@
-import { apiClient } from "./client";
+import api from "./client";
 
 export interface SearchResult {
   messages: Array<{
@@ -22,7 +22,7 @@ export async function searchRoom(
   roomId: number,
   query: string
 ): Promise<SearchResult> {
-  const response = await apiClient.get(
+  const response = await api.get(
     `/rooms/${roomId}/search`,
     {
       params: { query }
@@ -35,7 +35,7 @@ export async function getRoomSummary(
   roomId: number,
   query: string
 ): Promise<{ summary: string | null }> {
-  const response = await apiClient.get(
+  const response = await api.get(
     `/ai/summary/${roomId}`,
     {
       params: { query }
@@ -48,7 +48,7 @@ export async function queryRoom(
   roomId: number,
   query: string
 ): Promise<{ answer: string }> {
-  const response = await apiClient.get(
+  const response = await api.get(
     `/rooms/${roomId}/ai`,
     {
       params: { query }
