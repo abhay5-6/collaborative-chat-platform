@@ -22,10 +22,17 @@ export async function searchRoom(
   roomId: number,
   query: string
 ): Promise<SearchResult> {
+  const token = localStorage.getItem(
+    "token"
+  );
+
   const response = await api.get(
     `/rooms/${roomId}/search`,
     {
-      params: { query }
+      params: { query },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     }
   );
   return response.data;
@@ -35,10 +42,17 @@ export async function getRoomSummary(
   roomId: number,
   query: string
 ): Promise<{ summary: string | null }> {
+  const token = localStorage.getItem(
+    "token"
+  );
+
   const response = await api.get(
     `/ai/summary/${roomId}`,
     {
-      params: { query }
+      params: { query },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     }
   );
   return response.data;
@@ -48,10 +62,17 @@ export async function queryRoom(
   roomId: number,
   query: string
 ): Promise<{ answer: string }> {
+  const token = localStorage.getItem(
+    "token"
+  );
+
   const response = await api.get(
     `/rooms/${roomId}/ai`,
     {
-      params: { query }
+      params: { query },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     }
   );
   return response.data;
