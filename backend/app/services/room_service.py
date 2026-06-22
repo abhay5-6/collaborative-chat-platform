@@ -57,46 +57,64 @@ async def create_room(
 
 async def get_rooms(
     db: AsyncSession,
-    current_user: User
+    current_user: User,
+    skip: int = 0,
+    limit: int = 10
 ):
 
-    result = await db.execute(
+    # Get total count of rooms
+    count_result = await db.execute(
         select(Room)
+    )
+    total_rooms = len(
+        count_result.scalars().all()
+    )
+
+    # Fetch paginated rooms
+    result = await db.execute(
+        select(Room).offset(
+            skip
+        ).limit(limit)
     )
 
     rooms = result.scalars().all()
+
+    # Fetch all memberships for current user in one query
+    memberships_result = await db.execute(
+        select(RoomMembership).where(
+            RoomMembership.user_id == current_user.id
+        )
+    )
+
+    memberships = memberships_result.scalars().all()
+    
+    # Fetch all pending join requests for current user in one query
+    requests_result = await db.execute(
+        select(RoomJoinRequest).where(
+            RoomJoinRequest.user_id == current_user.id,
+            RoomJoinRequest.status == "pending"
+        )
+    )
+
+    pending_requests = requests_result.scalars().all()
+
+    # Build maps for fast lookup
+    membership_map = {
+        m.room_id: m 
+        for m in memberships
+    }
+    
+    pending_request_map = {
+        r.room_id: r 
+        for r in pending_requests
+    }
 
     room_list = []
 
     for room in rooms:
 
-        membership_result = await db.execute(
-            select(RoomMembership).where(
-                RoomMembership.user_id == current_user.id,
-                RoomMembership.room_id == room.id
-            )
-        )
-
-        membership = membership_result.scalar()
-
-        pending_request_result = await db.execute(
-
-            select(RoomJoinRequest).where(
-
-                RoomJoinRequest.user_id
-                    == current_user.id,
-
-                RoomJoinRequest.room_id
-                    == room.id,
-
-                RoomJoinRequest.status
-                    == "pending"
-            )
-        )
-
-        pending_request = (
-            pending_request_result.scalar()
-        )
+        membership = membership_map.get(room.id)
+        pending_request = pending_request_map.get(room.id)
 
         room_list.append({
             "id": room.id,
@@ -109,7 +127,10 @@ async def get_rooms(
             "has_pending_request": pending_request is not None,
         })
 
-    return room_list
+    return {
+        "items": room_list,
+        "total": total_rooms
+    }
 
 
 

@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timezone
+from app.core.config import settings
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import JSON, String ,DateTime
 from sqlalchemy import ForeignKey, Index, Text
@@ -41,11 +42,11 @@ class Message(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        default=datetime.utcnow
+        default=lambda: datetime.now(timezone.utc)
     )
     embedding: Mapped[list | None] = (
         mapped_column(
-            Vector(384),
+            Vector(settings.embedding_dimension),
             nullable=True
         )
     )

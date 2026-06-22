@@ -88,19 +88,37 @@ async def create_new_room(
 
 @router.get(
     "/",
-    response_model=list[RoomResponse]
+    response_model=dict
 )
 async def list_rooms(
+    skip: int = 0,
+    limit: int = 10,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(
         get_current_user
     )
 ):
+    # Validate pagination parameters
+    if skip < 0:
+        skip = 0
+    if limit < 1:
+        limit = 10
+    if limit > 100:  # Max 100 rooms per page
+        limit = 100
 
-    return await get_rooms(
+    result = await get_rooms(
         db,
-        current_user
+        current_user,
+        skip=skip,
+        limit=limit
     )
+
+    return {
+        "items": result["items"],
+        "total": result["total"],
+        "skip": skip,
+        "limit": limit
+    }
 
 
 @router.post("/{room_id}/join")

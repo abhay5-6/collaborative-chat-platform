@@ -1,5 +1,6 @@
-from sqlalchemy import String
+from sqlalchemy import String, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
+from datetime import datetime, timezone
 
 from app.db.database import Base
 
@@ -24,4 +25,30 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(
         String(255),
         nullable=False
+    )
+
+    email_verified: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False
+    )
+
+    email_verification_token: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True
+    )
+
+    password_reset_token: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True
+    )
+
+    password_reset_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc)
     )

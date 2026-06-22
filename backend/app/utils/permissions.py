@@ -27,20 +27,27 @@ async def get_membership(
     return result.scalar_one_or_none()
 
 
-def is_room_owner(
+def is_owner(
     membership: RoomMembership | None
-):
-
+) -> bool:
+    """Check if user is room owner"""
     return (
         membership is not None
         and membership.role == "owner"
     )
 
 
-def is_room_admin(
+def is_room_owner(
     membership: RoomMembership | None
 ):
+    """Alias for is_owner - for backward compatibility"""
+    return is_owner(membership)
 
+
+def is_admin(
+    membership: RoomMembership | None
+) -> bool:
+    """Check if user is room admin or owner"""
     return (
         membership is not None
         and membership.role in [
@@ -48,6 +55,13 @@ def is_room_admin(
             "admin"
         ]
     )
+
+
+def is_room_admin(
+    membership: RoomMembership | None
+):
+    """Alias for is_admin - for backward compatibility"""
+    return is_admin(membership)
 
 
 def can_manage_room(

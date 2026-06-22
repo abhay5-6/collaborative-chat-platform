@@ -18,6 +18,11 @@ api.interceptors.response.use(
       401
     ) {
 
+      // Clear from sessionStorage (primary) and localStorage (fallback)
+      sessionStorage.removeItem(
+        "token"
+      );
+      
       localStorage.removeItem(
         "token"
       );

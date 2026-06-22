@@ -33,6 +33,8 @@ async def build_room_context(
     messages = retrieval_result["messages"]
     memories = retrieval_result["memories"]
 
+    print(f"CONTEXT_BUILDER: Retrieved {len(messages)} messages, {len(memories)} memories")
+
     context_parts = []
 
     #

@@ -54,6 +54,13 @@ const [
     token: string
   ) {
 
+    // Keep both stores in sync so route guards and API calls
+    // see a consistent auth state during navigation.
+    sessionStorage.setItem(
+      "token",
+      token
+    );
+
     localStorage.setItem(
       "token",
       token
@@ -65,6 +72,10 @@ const [
   }
 
   function logout() {
+
+    sessionStorage.removeItem(
+      "token"
+    );
 
     localStorage.removeItem(
       "token"
@@ -80,9 +91,8 @@ const [
     queueMicrotask(() => {
 
       const token =
-        localStorage.getItem(
-          "token"
-        );
+        sessionStorage.getItem("token")
+        || localStorage.getItem("token");
 
       setIsAuthenticated(
         !!token

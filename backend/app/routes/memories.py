@@ -14,7 +14,8 @@ from app.db.session import get_db
 
 from app.schemas.room_memory import (
     RoomMemoryCreate,
-    RoomMemoryResponse
+    RoomMemoryResponse,
+    SearchResult
 )
 
 from app.services.ai.memory_service import (
@@ -64,6 +65,22 @@ async def add_room_memory(
     current_user: User = Depends(get_current_user)
 ):
 
+    from app.services.message_service import has_room_access
+    from fastapi import HTTPException
+    
+    # Verify user has access to room
+    has_access = await has_room_access(
+        db,
+        room_id,
+        current_user
+    )
+
+    if not has_access:
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied to this room"
+        )
+
     embedding = await generate_embedding(
         memory.content
     )
@@ -106,7 +123,10 @@ async def semantic_memory_search(
     return memories
 
 
-@router.get("/{room_id}/search")
+@router.get(
+    "/{room_id}/search",
+    response_model=SearchResult
+)
 @limiter.limit(settings.ai_rate_limit)
 async def hybrid_search(
     request: Request,

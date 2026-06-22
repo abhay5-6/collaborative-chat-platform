@@ -21,6 +21,9 @@ from app.core.config import settings
 from app.core.rate_limit import limiter
 from app.models.user import User
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/rooms",

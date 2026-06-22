@@ -8,6 +8,9 @@ export function isAuthenticated() {
   }
 
   const token =
+    sessionStorage.getItem(
+      "token"
+    ) ||
     localStorage.getItem(
       "token"
     );

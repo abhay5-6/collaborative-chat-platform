@@ -30,10 +30,13 @@ async def create_user(
 
     db.add(new_user)
 
-    await db.commit()
-    await db.refresh(new_user)
-
-    return new_user
+    try:
+        await db.commit()
+        await db.refresh(new_user)
+        return new_user
+    except Exception as e:
+        await db.rollback()
+        raise e
 
 async def authenticate_user(
     db: AsyncSession,

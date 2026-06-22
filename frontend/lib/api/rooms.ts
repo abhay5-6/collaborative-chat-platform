@@ -3,7 +3,9 @@ import api from "./client";
 export async function getRooms() {
 
   const token =
-    localStorage.getItem(
+    sessionStorage.getItem(
+      "token"
+    ) || localStorage.getItem(
       "token"
     );
 
@@ -29,7 +31,22 @@ export async function getRooms() {
         }
       );
 
-    return response.data;
+    const payload = response.data;
+
+    // Backend may return either a plain list
+    // or a paginated object with `items`.
+    if (Array.isArray(payload)) {
+      return payload;
+    }
+
+    if (
+      payload
+      && Array.isArray(payload.items)
+    ) {
+      return payload.items;
+    }
+
+    return [];
 
   } catch (error) {
 

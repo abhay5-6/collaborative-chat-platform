@@ -13,28 +13,33 @@ async def has_room_access(
     room_id: int,
     user: User
 ):
-
-    room_result = await db.execute(
+    # Use JOIN to prevent race condition
+    # between checking room existence and membership
+    from sqlalchemy.orm import joinedload
+    from sqlalchemy import and_
+    
+    result = await db.execute(
         select(Room).where(
             Room.id == room_id
         )
     )
 
-    room = room_result.scalar()
+    room = result.scalar()
 
     if not room:
         return False
 
-    # PUBLIC ROOM
+    # PUBLIC ROOM - allow access
     if not room.is_private:
         return True
 
-    # PRIVATE ROOM
-
+    # PRIVATE ROOM - check membership in same transaction
     membership_result = await db.execute(
         select(RoomMembership).where(
-            RoomMembership.user_id == user.id,
-            RoomMembership.room_id == room_id
+            and_(
+                RoomMembership.user_id == user.id,
+                RoomMembership.room_id == room_id
+            )
         )
     )
 

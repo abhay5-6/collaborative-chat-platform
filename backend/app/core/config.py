@@ -70,6 +70,14 @@ class Settings:
     memory_min_content_length: int
     memory_max_content_length: int
 
+    embedding_dimension: int
+    password_reset_token_expire_hours: int
+    email_verification_enabled: bool
+    smtp_server: str | None
+    smtp_port: int
+    smtp_user: str | None
+    smtp_password: str | None
+
 
 def load_settings() -> Settings:
 
@@ -198,6 +206,38 @@ def load_settings() -> Settings:
         memory_max_content_length=_get_int_env(
             "MEMORY_MAX_CONTENT_LENGTH",
             4000
+        ),
+
+        embedding_dimension=_get_int_env(
+            "EMBEDDING_DIMENSION",
+            384
+        ),
+
+        password_reset_token_expire_hours=_get_int_env(
+            "PASSWORD_RESET_TOKEN_EXPIRE_HOURS",
+            24
+        ),
+
+        email_verification_enabled=os.getenv(
+            "EMAIL_VERIFICATION_ENABLED",
+            "false"
+        ).lower() == "true",
+
+        smtp_server=os.getenv(
+            "SMTP_SERVER"
+        ),
+
+        smtp_port=_get_int_env(
+            "SMTP_PORT",
+            587
+        ),
+
+        smtp_user=os.getenv(
+            "SMTP_USER"
+        ),
+
+        smtp_password=os.getenv(
+            "SMTP_PASSWORD"
         )
     )
 

@@ -1,9 +1,10 @@
 from sqlalchemy import (
     ForeignKey,
     String,
-    DateTime
+    DateTime,
+    Index
 )
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import (
     Mapped,
     mapped_column
@@ -14,6 +15,11 @@ from app.db.database import Base
 
 class RoomMembership(Base):
     __tablename__ = "room_memberships"
+    __table_args__ = (
+        Index("ix_room_membership_user_id", "user_id"),
+        Index("ix_room_membership_room_id", "room_id"),
+        Index("ix_room_membership_user_room", "user_id", "room_id"),
+    )
 
     id: Mapped[int] = mapped_column(
         primary_key=True
@@ -34,6 +40,6 @@ class RoomMembership(Base):
 
     joined_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=datetime.utcnow
+        default=lambda: datetime.now(timezone.utc)
     )
     

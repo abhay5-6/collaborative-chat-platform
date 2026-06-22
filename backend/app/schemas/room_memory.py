@@ -11,7 +11,7 @@ class RoomMemoryCreate(
     memory_type: str = "note"
 
     importance_score: int = 1
-    
+
     tags: list[str] = []
 
 
@@ -34,3 +34,31 @@ class RoomMemoryResponse(
     class Config:
 
         from_attributes = True
+
+
+class SearchMessage(
+    BaseModel
+):
+
+    type: str
+
+    id: int
+
+    content: str
+
+    created_at: datetime
+
+    score: float
+
+
+class SearchResult(
+    BaseModel
+):
+
+    messages: list[
+        SearchMessage
+    ]
+
+    memories: list[
+        RoomMemoryResponse
+    ]

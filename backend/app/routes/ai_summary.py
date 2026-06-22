@@ -1,7 +1,8 @@
 from fastapi import (
     APIRouter,
     Depends,
-    Request
+    Request,
+    HTTPException
 )
 
 from sqlalchemy.ext.asyncio import (
@@ -21,6 +22,8 @@ from app.models.user import User
 from app.services.ai.memory_summary_service import (
     generate_memory_summary
 )
+
+from app.services.message_service import has_room_access
 
 router = APIRouter(
     prefix="/ai",
@@ -44,6 +47,19 @@ async def summarize_room_memory(
         get_current_user
     )
 ):
+
+    # Verify user has access to room
+    has_access = await has_room_access(
+        db,
+        room_id,
+        current_user
+    )
+
+    if not has_access:
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied to this room"
+        )
 
     summary = await (
         generate_memory_summary(

@@ -66,7 +66,9 @@ export async function login(
 export async function getMe() {
 
   const token =
-    localStorage.getItem(
+    sessionStorage.getItem(
+      "token"
+    ) || localStorage.getItem(
       "token"
     );
 
