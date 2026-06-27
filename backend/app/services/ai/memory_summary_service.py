@@ -81,7 +81,7 @@ Memories:
 {memory_text}
 """
 
-    response = client.models.generate_content(
+    response = await client.aio.models.generate_content(
         model=GEMINI_MODEL,
         contents=prompt,
     )

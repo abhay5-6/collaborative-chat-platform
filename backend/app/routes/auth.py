@@ -41,10 +41,16 @@ async def register(
 ):
     created_user = await create_user(db, user)
 
-    if not created_user:
+    if created_user == "EMAIL_TAKEN":
         raise HTTPException(
             status_code=400,
             detail="Email already registered"
+        )
+        
+    if created_user == "USERNAME_TAKEN":
+        raise HTTPException(
+            status_code=400,
+            detail="Username already taken"
         )
 
     return created_user

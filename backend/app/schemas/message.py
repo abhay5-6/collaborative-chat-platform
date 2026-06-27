@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class MessageCreate(BaseModel):
@@ -10,10 +10,18 @@ class MessageCreate(BaseModel):
 class MessageResponse(BaseModel):
     id: int
     content: str
-    sender_id: int
+    sender_id: int | None
     room_id: int
     created_at: datetime
     username: str | None = None
+    extra_data: dict | None = None
+
+    @field_validator("created_at", mode="after")
+    @classmethod
+    def ensure_tz(cls, v: datetime):
+        if v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
 
     class Config:
         from_attributes = True

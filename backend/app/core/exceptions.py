@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 def _request_context(request: Request) -> dict:
     return {
         "path": request.url.path,
-        "method": request.method,
+        "method": getattr(request, "method", "WEBSOCKET"),
         "request_id": getattr(
             request.state,
             "request_id",

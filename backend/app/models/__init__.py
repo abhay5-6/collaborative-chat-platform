@@ -9,3 +9,10 @@ from app.models.room_memory import (
 from app.models.memory_edge import (
     MemoryEdge
 )
+from app.models.collaborator_request import (
+    CollaboratorRequest
+)
+from app.models.join_request import (
+    RoomJoinRequest
+)
+from app.models.room_task import RoomTask

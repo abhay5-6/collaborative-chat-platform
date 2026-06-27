@@ -8,6 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.db.database import engine
 from app.routes.auth import router as auth_router
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from starlette.exceptions import HTTPException
@@ -26,13 +27,15 @@ from app.core.exceptions import (
 )
 from app.core.logging_config import configure_logging
 from app.core.rate_limit import limiter
-from app.routes import collaborators
+from app.routes import collaborators, files
 from app.models.room_memory import RoomMemory
+from app.models.room_task import RoomTask
 from app.routes.memories import router as memories_router
 from app.routes.ai_summary import router as ai_summary_router
 from app.routes.ai_graph import router as ai_graph_router
 import logging
 from uuid import uuid4
+import os
 
 
 configure_logging()
@@ -120,6 +123,8 @@ async def request_context_middleware(
     )
 
     return response
+from app.routes.tasks import router as tasks_router
+
 app.include_router(auth_router)
 app.include_router(rooms_router)
 app.include_router(messages_router)
@@ -130,6 +135,11 @@ app.include_router(ai_summary_router)
 app.include_router(
     ai_graph_router,
 )
+app.include_router(files.router)
+app.include_router(tasks_router)
+
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.get("/")
 def root():

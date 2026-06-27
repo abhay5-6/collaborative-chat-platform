@@ -11,14 +11,21 @@ async def create_user(
     db: AsyncSession,
     user_data: UserCreate
 ):
+    from sqlalchemy import or_
     existing_user = await db.execute(
         select(User).where(
-            User.email == user_data.email
+            or_(
+                User.email == user_data.email,
+                User.username == user_data.username
+            )
         )
     )
 
-    if existing_user.scalar():
-        return None
+    conflict = existing_user.scalar()
+    if conflict:
+        if conflict.email == user_data.email:
+            return "EMAIL_TAKEN"
+        return "USERNAME_TAKEN"
 
     new_user = User(
         username=user_data.username,

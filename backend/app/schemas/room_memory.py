@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from datetime import datetime
+from pydantic import BaseModel, field_validator
+from datetime import datetime, timezone
 
 
 class RoomMemoryCreate(
@@ -31,6 +31,13 @@ class RoomMemoryResponse(
 
     created_at: datetime
 
+    @field_validator("created_at", mode="after")
+    @classmethod
+    def ensure_tz(cls, v: datetime):
+        if v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
+
     class Config:
 
         from_attributes = True
@@ -49,6 +56,13 @@ class SearchMessage(
     created_at: datetime
 
     score: float
+
+    @field_validator("created_at", mode="after")
+    @classmethod
+    def ensure_tz(cls, v: datetime):
+        if v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
 
 
 class SearchResult(

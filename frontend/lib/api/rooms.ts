@@ -59,6 +59,25 @@ export async function getRooms() {
   }
 }
 
+export async function getRoom(
+  roomId: number
+) {
+  const token =
+    sessionStorage.getItem("token") ||
+    localStorage.getItem("token");
+
+  const response = await api.get(
+    `/rooms/${roomId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+}
+
 export async function joinRoom(
   roomId: number
 ) {
@@ -289,6 +308,25 @@ export async function removeMember(
         },
       }
     );
+
+  return response.data;
+}
+
+export async function toggleRoomAI(
+  roomId: number,
+  ai_enabled: boolean
+) {
+  const token = localStorage.getItem("token");
+
+  const response = await api.patch(
+    `/rooms/${roomId}`,
+    { ai_enabled },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
 
   return response.data;
 }

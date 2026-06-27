@@ -39,7 +39,7 @@ export default function LoadingSpinner({
           h-20
           w-20
           rounded-full
-          bg-white/5
+          bg-primary/5
           animate-ping
         " />
 
@@ -51,8 +51,8 @@ export default function LoadingSpinner({
           w-16
           rounded-3xl
           border
-          border-neutral-800
-          bg-neutral-950
+          border-border
+          bg-background
           flex
           items-center
           justify-center
@@ -71,7 +71,7 @@ export default function LoadingSpinner({
           <BrainCircuit
             size={28}
             className="
-              text-white
+              text-foreground
             "
           />
 

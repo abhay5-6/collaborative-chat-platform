@@ -56,7 +56,7 @@ USER QUESTION:
 {query}
 """
 
-    response = client.models.generate_content(
+    response = await client.aio.models.generate_content(
         model=GEMINI_MODEL,
         contents=prompt,
     )
@@ -67,5 +67,34 @@ USER QUESTION:
         "Room answer generated for room_id:",
         room_id,
     )
+
+    return answer
+
+
+async def generate_web_search_answer(
+    query: str,
+):
+    print("Generating web search answer for query:", query)
+
+    prompt = f"""
+You are Rework AI, a collaborative team assistant.
+A user has asked you to perform a web search.
+
+Use the provided Google Search tool to find up-to-date and accurate information.
+Answer the user's query clearly and concisely based on your search results.
+Include URLs or references if helpful.
+
+USER QUERY:
+{query}
+"""
+
+    response = await client.aio.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=prompt,
+        config={"tools": [{"google_search": {}}]}
+    )
+
+    answer = response.text
+    print("Web search answer generated")
 
     return answer

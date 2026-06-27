@@ -40,6 +40,6 @@ class RoomMembership(Base):
 
     joined_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=lambda: datetime.now(timezone.utc)
+        default=datetime.utcnow
     )
     

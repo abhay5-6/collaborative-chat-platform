@@ -114,16 +114,16 @@ class RoomMemory(Base):
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=lambda: datetime.now(timezone.utc)
+        default=datetime.utcnow
     )
 
     last_accessed_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=lambda: datetime.now(timezone.utc)
+        default=datetime.utcnow
     )
 
     last_reinforced_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=lambda: datetime.now(timezone.utc)
+        default=datetime.utcnow
     )
 

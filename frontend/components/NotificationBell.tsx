@@ -275,7 +275,7 @@ export default function NotificationBell() {
 
         {totalNotifications > 0 && (
 
-          <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold min-w-[20px] h-5 px-1 flex items-center justify-center rounded-full">
+          <span className="absolute -top-1 -right-1 bg-red-600 text-foreground text-xs font-bold min-w-[20px] h-5 px-1 flex items-center justify-center rounded-full">
 
             {totalNotifications}
 
@@ -286,9 +286,9 @@ export default function NotificationBell() {
 
       {open && (
 
-        <div className="absolute right-0 mt-3 w-96 bg-zinc-950/80 backdrop-blur-xl border border-[rgba(88,101,242,0.35)] rounded-2xl shadow-2xl z-50 overflow-hidden">
+        <div className="absolute right-0 mt-3 w-96 bg-background/80 backdrop-blur-xl border border-[rgba(88,101,242,0.35)] rounded-2xl shadow-2xl z-50 overflow-hidden">
 
-          <div className="p-4 border-b border-zinc-800 font-semibold text-lg">
+          <div className="p-4 border-b border-border font-semibold text-lg">
 
             Notifications
 
@@ -296,7 +296,7 @@ export default function NotificationBell() {
 
           {totalNotifications === 0 ? (
 
-            <div className="p-6 text-zinc-500 text-center">
+            <div className="p-6 text-muted-foreground text-center">
 
               No notifications
 
@@ -310,9 +310,9 @@ export default function NotificationBell() {
 
               {roomRequests.length > 0 && (
 
-                <div className="border-b border-zinc-800">
+                <div className="border-b border-border">
 
-                  <div className="px-4 py-3 text-sm font-semibold text-zinc-400 uppercase">
+                  <div className="px-4 py-3 text-sm font-semibold text-muted-foreground uppercase">
 
                     Room Requests
 
@@ -326,12 +326,12 @@ export default function NotificationBell() {
                           request.request_id
                         }
 
-                        className="p-4 border-t border-zinc-800"
+                        className="p-4 border-t border-border"
                       >
 
-                        <div className="mb-3 text-sm text-zinc-300 leading-relaxed">
+                        <div className="mb-3 text-sm text-foreground leading-relaxed">
 
-                          <span className="font-semibold text-white">
+                          <span className="font-semibold text-foreground">
 
                             {
                               request.username
@@ -341,7 +341,7 @@ export default function NotificationBell() {
 
                           requested access to{" "}
 
-                          <span className="font-semibold text-white">
+                          <span className="font-semibold text-foreground">
 
                             {
                               request.room_name
@@ -396,7 +396,7 @@ export default function NotificationBell() {
 
                 <div>
 
-                  <div className="px-4 py-3 text-sm font-semibold text-zinc-400 uppercase">
+                  <div className="px-4 py-3 text-sm font-semibold text-muted-foreground uppercase">
 
                     Collaboration Requests
 
@@ -410,12 +410,12 @@ export default function NotificationBell() {
                           request.request_id
                         }
 
-                        className="p-4 border-t border-zinc-800"
+                        className="p-4 border-t border-border"
                       >
 
-                        <div className="mb-3 text-sm text-zinc-300 leading-relaxed">
+                        <div className="mb-3 text-sm text-foreground leading-relaxed">
 
-                          <span className="font-semibold text-white">
+                          <span className="font-semibold text-foreground">
 
                             {
                               request.username

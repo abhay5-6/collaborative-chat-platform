@@ -19,6 +19,9 @@ import {
   getRoomSummary,
   SearchResult
 } from "@/lib/api/ai";
+import { askRoomAI } from "@/lib/api/ai";
+import { toast } from "sonner";
+import StaleMemoryAlerts from "./StaleMemoryAlerts";
 
 interface AIAssistantPanelProps {
   roomId: number;
@@ -102,8 +105,8 @@ export default function AIAssistantPanel({
           top-1/2
           -translate-y-1/2
           z-40
-          bg-white
-          text-black
+          bg-primary
+          text-primary-foreground
           p-2
           rounded-full
           hover:scale-110
@@ -128,10 +131,10 @@ export default function AIAssistantPanel({
           h-screen
           w-full
           sm:w-96
-          bg-zinc-950/95
+          bg-background/95
           backdrop-blur-xl
           border-l
-          border-zinc-800
+          border-border
           transform
           transition-transform
           duration-300
@@ -142,11 +145,15 @@ export default function AIAssistantPanel({
           ${isOpen ? "translate-x-0" : "translate-x-full"}
         `}
       >
+        {/* STALE MEMORY ALERTS */}
+      <StaleMemoryAlerts roomId={roomId} />
+
+      {/* CHAT AREA */}
         {/* HEADER */}
         <div className="
           p-6
           border-b
-          border-zinc-800
+          border-border
           flex
           items-center
           justify-between
@@ -163,7 +170,7 @@ export default function AIAssistantPanel({
             <h2 className="
               text-xl
               font-bold
-              text-white
+              text-foreground
             ">
               AI Assistant
             </h2>
@@ -172,8 +179,8 @@ export default function AIAssistantPanel({
           <button
             onClick={onToggle}
             className="
-              text-zinc-400
-              hover:text-white
+              text-muted-foreground
+              hover:text-foreground
               transition
             "
           >
@@ -211,13 +218,13 @@ export default function AIAssistantPanel({
                 placeholder="Ask anything..."
                 className="
                   flex-1
-                  bg-zinc-900
+                  bg-muted
                   border
-                  border-zinc-700
+                  border-border
                   rounded-xl
                   px-4
                   py-2
-                  text-white
+                  text-foreground
                   placeholder-zinc-500
                   outline-none
                   focus:border-blue-500
@@ -231,7 +238,7 @@ export default function AIAssistantPanel({
                   bg-blue-600
                   hover:bg-blue-700
                   disabled:opacity-50
-                  text-white
+                  text-foreground
                   p-2
                   rounded-xl
                   transition
@@ -259,8 +266,8 @@ export default function AIAssistantPanel({
                 className="
                   w-full
                   text-sm
-                  text-zinc-400
-                  hover:text-zinc-300
+                  text-muted-foreground
+                  hover:text-foreground
                   transition
                   py-2
                   text-left
@@ -275,9 +282,9 @@ export default function AIAssistantPanel({
                   top-full
                   left-0
                   right-0
-                  bg-zinc-900
+                  bg-muted
                   border
-                  border-zinc-700
+                  border-border
                   rounded-xl
                   mt-2
                   p-2
@@ -297,8 +304,8 @@ export default function AIAssistantPanel({
                           w-full
                           text-left
                           text-sm
-                          text-zinc-300
-                          hover:bg-zinc-800
+                          text-foreground
+                          hover:bg-card
                           p-2
                           rounded-lg
                           transition
@@ -335,7 +342,7 @@ export default function AIAssistantPanel({
                   </h3>
                   <p className="
                     text-sm
-                    text-zinc-300
+                    text-foreground
                     leading-relaxed
                   ">
                     {answer}
@@ -350,7 +357,7 @@ export default function AIAssistantPanel({
                   <h3 className="
                     text-sm
                     font-semibold
-                    text-zinc-300
+                    text-foreground
                   ">
                     📚 Memories (
                     {results.memories.length}
@@ -362,23 +369,23 @@ export default function AIAssistantPanel({
                         <div
                           key={memory.id}
                           className="
-                            bg-zinc-900/50
+                            bg-muted/50
                             border
-                            border-zinc-700
+                            border-border
                             rounded-lg
                             p-3
                           "
                         >
                           <div className="
                             text-xs
-                            text-zinc-400
+                            text-muted-foreground
                             mb-1
                           ">
                             {memory.memory_type}
                           </div>
                           <p className="
                             text-sm
-                            text-zinc-300
+                            text-foreground
                             line-clamp-2
                           ">
                             {memory.content}
@@ -397,7 +404,7 @@ export default function AIAssistantPanel({
                   <h3 className="
                     text-sm
                     font-semibold
-                    text-zinc-300
+                    text-foreground
                   ">
                     💬 Messages (
                     {results.messages.length}
@@ -409,16 +416,16 @@ export default function AIAssistantPanel({
                         <div
                           key={msg.id}
                           className="
-                            bg-zinc-900/50
+                            bg-muted/50
                             border
-                            border-zinc-700
+                            border-border
                             rounded-lg
                             p-3
                           "
                         >
                           <div className="
                             text-xs
-                            text-zinc-400
+                            text-muted-foreground
                             mb-1
                           ">
                             Score:{" "}
@@ -428,7 +435,7 @@ export default function AIAssistantPanel({
                           </div>
                           <p className="
                             text-sm
-                            text-zinc-300
+                            text-foreground
                             line-clamp-2
                           ">
                             {msg.content}
@@ -445,7 +452,7 @@ export default function AIAssistantPanel({
           {!results && !loading && (
             <div className="
               text-center
-              text-zinc-400
+              text-muted-foreground
               text-sm
               py-8
             ">
@@ -463,7 +470,7 @@ export default function AIAssistantPanel({
           className="
             fixed
             inset-0
-            bg-black/20
+            bg-background/20
             z-20
             lg:hidden
           "

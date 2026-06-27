@@ -38,4 +38,9 @@ class Room(Base):
         ForeignKey("users.id"),
         nullable=False
     )
+
+    ai_enabled: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True
+    )
     

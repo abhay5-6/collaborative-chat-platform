@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-transparent text-white flex items-center justify-center px-6">
+    <main className="min-h-screen bg-transparent text-foreground flex items-center justify-center px-6">
       <div className="max-w-2xl w-full flex flex-col items-center gap-8 text-center">
 
         <div className="space-y-4">
@@ -11,7 +11,7 @@ export default function Home() {
             Rework
           </h1>
 
-          <p className="text-zinc-400 text-lg">
+          <p className="text-muted-foreground text-lg">
             AI-powered realtime collaboration platform.
           </p>
         </div>
@@ -20,21 +20,21 @@ export default function Home() {
 
           <Link
             href="/login"
-            className="px-6 py-3 rounded-xl bg-white text-black font-semibold hover:opacity-90 transition"
+            className="px-6 py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:opacity-90 transition"
           >
             Login
           </Link>
 
           <Link
             href="/rooms"
-            className="px-6 py-3 rounded-xl border border-zinc-700 hover:bg-zinc-900 transition"
+            className="px-6 py-3 rounded-xl border border-border hover:bg-muted transition"
           >
             Rooms
           </Link>
 
         </div>
 
-        <div className="pt-10 text-sm text-zinc-500">
+        <div className="pt-10 text-sm text-muted-foreground">
           FastAPI • Next.js • PostgreSQL • WebSockets
         </div>
       </div>

@@ -19,7 +19,10 @@ from app.schemas.room_memory import (
 )
 
 from app.services.ai.memory_service import (
-    create_room_memory
+    create_room_memory,
+    get_stale_memories,
+    reinforce_memory,
+    delete_memory
 )
 
 from app.services.ai.embedding_service import (
@@ -168,3 +171,42 @@ async def room_ai_query(
     return {
         "answer": answer
     }
+
+@router.get(
+    "/{room_id}/memories/stale",
+    response_model=List[RoomMemoryResponse]
+)
+async def get_stale(
+    room_id: int,
+    days_old: int = 30,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    memories = await get_stale_memories(db, room_id, days_old)
+    return memories
+
+@router.post("/{room_id}/memories/{memory_id}/reinforce")
+async def reinforce(
+    room_id: int,
+    memory_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    memory = await reinforce_memory(db, memory_id)
+    if not memory:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Memory not found")
+    return {"message": "Memory reinforced", "confidence_score": memory.confidence_score}
+
+@router.delete("/{room_id}/memories/{memory_id}")
+async def delete_stale_memory(
+    room_id: int,
+    memory_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    success = await delete_memory(db, memory_id)
+    if not success:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Memory not found")
+    return {"message": "Memory pruned successfully"}

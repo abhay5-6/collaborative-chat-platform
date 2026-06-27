@@ -127,8 +127,8 @@ async def search_room_memories(
             print(f"  Memory {memory.id}: SKIP (similarity=None)")
             continue
 
-        if similarity < 0.30:
-            print(f"  Memory {memory.id}: SKIP (similarity={similarity:.3f} < 0.30)")
+        if similarity < 0.10:
+            print(f"  Memory {memory.id}: SKIP (similarity={similarity:.3f} < 0.10)")
             continue
 
         print(f"  Memory {memory.id}: similarity={similarity:.3f}, content='{memory.content[:50]}...'")

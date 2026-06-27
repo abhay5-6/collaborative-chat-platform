@@ -1,3 +1,4 @@
+from datetime import timezone
 from fastapi import (
     APIRouter,
     WebSocket,
@@ -24,12 +25,20 @@ from app.db.session import (
     AsyncSessionLocal
 )
 
+from sqlalchemy import select
+from app.models.room import Room
+
 from app.services.message_service import (
     create_realtime_message
 )
 
 from app.services.ai.auto_memory_service import (
     process_memory_background
+)
+
+from app.services.ai.ai_client import (
+    generate_room_answer,
+    generate_web_search_answer
 )
 
 router = APIRouter()
@@ -231,25 +240,41 @@ async def websocket_chat(
 
                     continue
 
+                # WebRTC Signaling
+                if event_type in [
+                    "join_call",
+                    "leave_call",
+                    "webrtc_offer",
+                    "webrtc_answer",
+                    "webrtc_ice_candidate"
+                ]:
+                    inner_data = data.get("data", {})
+                    # Broadcast the signaling message to everyone else in the room
+                    await manager.broadcast(
+                        room_id,
+                        {
+                            "type": event_type,
+                            "data": {
+                                **inner_data,
+                                "sender_username": user.username,
+                            }
+                        }
+                    )
+                    continue
+
                 # Chat message
                 if event_type == "chat_message":
 
-                    content = data.get(
-                        "message"
-                    )
+                    content = data.get("message")
+                    extra_data = data.get("extra_data", {})
 
                     if not isinstance(content, str):
-                        await send_error(
-                            websocket,
-                            "Message must be text"
-                        )
+                        await send_error(websocket, "Message must be text")
                         continue
 
-                    content = sanitize_message(
-                        content
-                    )
+                    content = sanitize_message(content)
 
-                    if not content:
+                    if not content and not extra_data:
                         continue
 
                     if len(content) > (
@@ -271,13 +296,12 @@ async def websocket_chat(
                         )
                         continue
 
-                    saved_message = (
-                        await create_realtime_message(
-                            db,
-                            room_id,
-                            user,
-                            content
-                        )
+                    saved_message = await create_realtime_message(
+                        db,
+                        room_id,
+                        user,
+                        content,
+                        extra_data
                     )
 
                     if not saved_message:
@@ -308,15 +332,10 @@ async def websocket_chat(
                             "username":
                                 user.username,
 
-                            "room_id":
-                                room_id,
-
-                            "message":
-                                saved_message.content,
-
-                            "created_at":
-                                saved_message.created_at
-                                .isoformat()
+                            "room_id": room_id,
+                            "message": saved_message.content,
+                            "extra_data": saved_message.extra_data,
+                            "created_at": saved_message.created_at.replace(tzinfo=timezone.utc).isoformat()
                         }
                     }
 
@@ -325,26 +344,45 @@ async def websocket_chat(
                         message_payload
                     )
 
-                    # Process AI memory in background
-                    try:
-                        print("Scheduling memory extraction task")
-                        asyncio.create_task(
-                            process_memory_background(
-                                room_id,
-                                user.id,
-                                saved_message.id,
-                                saved_message.content
+                    # Process AI memory in background if enabled
+                    room_result = await db.execute(select(Room).where(Room.id == room_id))
+                    room = room_result.scalar()
+                    
+                    if room and room.ai_enabled:
+                        try:
+                            print("Scheduling memory extraction task")
+                            asyncio.create_task(
+                                process_memory_background(
+                                    room_id,
+                                    user.id,
+                                    saved_message.id,
+                                    saved_message.content
+                                )
                             )
-                        )
-                    except Exception:
-                        print("Failed to schedule memory extraction task")
-                        logger.exception(
-                            "memory_background_task_create_failed",
-                            extra={
-                                "room_id": room_id,
-                                "user_id": user.id
-                            }
-                        )
+                        except Exception:
+                            print("Failed to schedule memory extraction task")
+                            logger.exception(
+                                "memory_background_task_create_failed",
+                                extra={
+                                    "room_id": room_id,
+                                    "user_id": user.id
+                                }
+                            )
+                            
+                    # Trigger AI chat commands if applicable
+                    is_web_query = content.startswith("@web")
+                    is_ai_query = content.startswith("@ai")
+
+                    if is_web_query or is_ai_query:
+                        query_text = content[4:].strip() if is_web_query else content[3:].strip()
+                        if query_text:
+                            asyncio.create_task(
+                                handle_ai_chat_command(
+                                    room_id,
+                                    query_text,
+                                    is_web_query
+                                )
+                            )
 
                     continue
 
@@ -394,3 +432,42 @@ async def websocket_chat(
                     }
                 }
             )
+
+async def handle_ai_chat_command(
+    room_id: int,
+    query: str,
+    is_web_query: bool
+):
+    try:
+        async with AsyncSessionLocal() as db:
+            if is_web_query:
+                answer = await generate_web_search_answer(query)
+            else:
+                answer = await generate_room_answer(db, room_id, query)
+                
+            if answer:
+                saved_message = await create_realtime_message(
+                    db,
+                    room_id,
+                    user=None,
+                    content=answer
+                )
+                
+                if saved_message:
+                    message_payload = {
+                        "type": "chat_message",
+                        "data": {
+                            "id": saved_message.id,
+                            "user_id": None,
+                            "username": "Rework AI",
+                            "room_id": room_id,
+                            "message": saved_message.content,
+                            "created_at": saved_message.created_at.replace(tzinfo=timezone.utc).isoformat()
+                        }
+                    }
+                    await manager.broadcast(room_id, message_payload)
+    except Exception:
+        logger.exception(
+            "ai_chat_command_failed",
+            extra={"room_id": room_id, "query": query, "is_web": is_web_query}
+        )

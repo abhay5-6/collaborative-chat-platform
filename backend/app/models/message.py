@@ -33,8 +33,9 @@ class Message(Base):
         nullable=False
     )
 
-    sender_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id")
+    sender_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=True
     )
 
     room_id: Mapped[int] = mapped_column(
@@ -42,7 +43,7 @@ class Message(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        default=lambda: datetime.now(timezone.utc)
+        default=datetime.utcnow
     )
     embedding: Mapped[list | None] = (
         mapped_column(

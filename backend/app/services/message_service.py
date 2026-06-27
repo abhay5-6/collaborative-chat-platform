@@ -133,7 +133,9 @@ async def get_room_messages(
                 message.created_at,
 
             "username":
-                sender.username
+                sender.username,
+                
+            "extra_data": message.extra_data
         })
 
     return formatted_messages
@@ -142,23 +144,25 @@ async def get_room_messages(
 async def create_realtime_message(
     db: AsyncSession,
     room_id: int,
-    user: User,
-    content: str
+    user: User | None,
+    content: str,
+    extra_data: dict = None
 ):
+    if user is not None:
+        allowed = await has_room_access(
+            db,
+            room_id,
+            user
+        )
 
-    allowed = await has_room_access(
-        db,
-        room_id,
-        user
-    )
-
-    if not allowed:
-        return None
+        if not allowed:
+            return None
 
     message = Message(
         content=content,
-        sender_id=user.id,
-        room_id=room_id
+        sender_id=user.id if user else None,
+        room_id=room_id,
+        extra_data=extra_data or {}
     )
 
     db.add(message)

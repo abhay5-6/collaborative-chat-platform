@@ -23,6 +23,11 @@ import {
   Users,
   SendHorizonal,
   Sparkles,
+  Paperclip,
+  File as FileIcon,
+  Phone,
+  PhoneOff,
+  X,
 } from "lucide-react";
 
 import { toast }
@@ -42,10 +47,12 @@ import {
 } from "@/lib/api/auth";
 
 import {
+  getRoom,
   getRoomMembers,
   promoteMember,
   demoteMember,
-  removeMember
+  removeMember,
+  toggleRoomAI
 } from "@/lib/api/rooms";
 
 import {
@@ -53,7 +60,12 @@ import {
   getCollaborators,
 } from "@/lib/api/collaborators";
 
+import { uploadRoomFile } from "@/lib/api/files";
 import AIAssistantPanel from "@/components/ai/AIAssistantPanel";
+import TaskList from "@/components/tasks/TaskList";
+import { CheckCircle2 } from "lucide-react";
+import VideoGrid from "@/components/video/VideoGrid";
+import { useWebRTC } from "@/hooks/useWebRTC";
 
 
 type Message = {
@@ -62,6 +74,7 @@ type Message = {
   content?: string;
   username?: string;
   created_at?: string;
+  extra_data?: any;
 };
 
 type RoomMember = {
@@ -122,6 +135,8 @@ export default function RoomPage() {
   const roomId =
     Number(params.id);
 
+  const [room, setRoom] = useState<any>(null);
+
   const [messages, setMessages] =
     useState<Message[]>([]);
 
@@ -145,6 +160,15 @@ export default function RoomPage() {
 
   const [collaborators, setCollaborators] =
     useState<number[]>([]);
+
+  const [aiEnabled, setAiEnabled] =
+    useState(true);
+
+  const [isTasksOpen, setIsTasksOpen] = useState(false);
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [parseWithAI, setParseWithAI] = useState(true);
 
   const [
     connectionStatus,
@@ -177,6 +201,19 @@ export default function RoomPage() {
       null
     );
 
+  const {
+    localStream,
+    remoteStreams,
+    inCall,
+    startCall,
+    leaveCall,
+    handleSignalingData
+  } = useWebRTC(roomId, currentUsername || "", socketRef);
+
+  const handleSignalingDataRef = useRef(handleSignalingData);
+  useEffect(() => {
+    handleSignalingDataRef.current = handleSignalingData;
+  }, [handleSignalingData]);
 
   useEffect(() => {
 
@@ -234,6 +271,11 @@ export default function RoomPage() {
     if (roomId) {
 
       loadMessages();
+
+      getRoom(roomId).then((roomData) => {
+        setRoom(roomData);
+        setAiEnabled(roomData.ai_enabled ?? true);
+      }).catch(console.error);
     }
 
   }, [roomId, router]);
@@ -247,7 +289,6 @@ export default function RoomPage() {
 
         const user =
           await getMe();
-
         setCurrentUsername(
           user.username
         );
@@ -481,6 +522,17 @@ export default function RoomPage() {
           JSON.parse(
             event.data
           );
+        
+        if ([
+          "join_call", 
+          "leave_call", 
+          "webrtc_offer", 
+          "webrtc_answer", 
+          "webrtc_ice_candidate"
+        ].includes(payload.type)) {
+          handleSignalingDataRef.current(payload);
+          return;
+        }
 
         if (
           payload.type ===
@@ -589,18 +641,47 @@ export default function RoomPage() {
       return;
     }
 
-    if (!input.trim()) {
+    if (!input.trim() && !selectedFile) {
       return;
     }
 
-    socket.send(
-      JSON.stringify({
-        type: "chat_message",
-        message: input,
-      })
-    );
+    async function executeSend() {
+      try {
+        let extraData = {};
+        
+        if (selectedFile) {
+          const uploadResult = await uploadRoomFile(
+            roomId,
+            selectedFile,
+            (progressEvent) => {
+              const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+              setUploadProgress(percentCompleted);
+            }
+          );
+          extraData = {
+            file_url: uploadResult.file_url,
+            file_name: uploadResult.file_name,
+            file_type: uploadResult.file_type,
+            ai_parse: parseWithAI && aiEnabled
+          };
+        }
 
-    setInput("");
+        socketRef.current?.send(
+          JSON.stringify({
+            type: "chat_message",
+            message: input,
+            extra_data: extraData
+          })
+        );
+
+        setInput("");
+        setSelectedFile(null);
+        setUploadProgress(0);
+      } catch (error) {
+        toast.error("Failed to send message");
+      }
+    }
+    executeSend();
   }
 
 
@@ -732,15 +813,27 @@ export default function RoomPage() {
     }
   }
 
+  async function handleAIToggle() {
+    try {
+      const newValue = !aiEnabled;
+      setAiEnabled(newValue);
+      await toggleRoomAI(roomId, newValue);
+      toast.success(newValue ? "AI Processing Enabled" : "AI Processing Disabled");
+    } catch (error) {
+      setAiEnabled(aiEnabled); // revert
+      toast.error(getErrorMessage(error, "Failed to toggle AI setting"));
+    }
+  }
 
-  if (loading) {
+
+  if (loading || !room) {
 
     return (
 
       <div className="
         min-h-screen
         bg-transparent
-        text-white
+        text-foreground
         flex
         items-center
         justify-center
@@ -758,7 +851,7 @@ export default function RoomPage() {
     <div className="
       min-h-screen
       bg-transparent
-      text-white
+      text-foreground
       px-4
       sm:px-6
       md:px-10
@@ -786,7 +879,7 @@ export default function RoomPage() {
           flex-col
         ">
 
-          {/* HEADER */}
+          {/* ROOM HEADER */}
 
           <div className="
             flex
@@ -796,158 +889,152 @@ export default function RoomPage() {
             lg:justify-between
             gap-6
             mb-6
+            bg-muted/50
+            p-4
+            rounded-2xl
+            border
+            border-border
+            backdrop-blur-md
           ">
 
-            <div>
+            <div className="
+              flex
+              items-center
+              gap-4
+            ">
 
               <div className="
+                h-12
+                w-12
+                rounded-xl
+                bg-blue-500/20
                 flex
                 items-center
-                gap-3
-                mb-2
+                justify-center
+                text-blue-400
               ">
-
-                <h1 className="
-                  text-4xl
-                  font-bold
-                  tracking-tight
-                ">
-
-                  Room {roomId}
-
-                </h1>
-
-                <Link
-                  href={`/rooms/${roomId}/graph`}
-                  className="
-                    flex
-                    items-center
-                    gap-2
-                    px-4
-                    py-2
-                    rounded-xl
-                    bg-white
-                    text-black
-                    text-sm
-                    font-semibold
-                    hover:scale-105
-                    transition
-                  "
-                >
-
-                  <Network size={16} />
-
-                  Graph
-
-                </Link>
-
+                <Network size={24} />
               </div>
 
-              {/* AI ASSISTANT BUTTON */}
-              <button
-                onClick={() =>
-                  setAiPanelOpen(
-                    !aiPanelOpen
-                  )
-                }
-                className={`
+              <div>
+
+                <h1 className="
+                  text-xl
+                  font-bold
+                  text-foreground
+                  mb-1
+                ">
+                  {room.name}
+                </h1>
+
+                <div className="
+                  text-sm
+                  text-muted-foreground
                   flex
                   items-center
                   gap-2
-                  px-4
-                  py-2
-                  rounded-xl
-                  text-sm
-                  font-semibold
-                  transition
-                  ${aiPanelOpen
-                    ? "bg-blue-600 text-white"
-                    : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                  }
-                `}
+                ">
+                  {room.is_private ? "Private" : "Public"} • {members.length} members
+                </div>
+
+              </div>
+
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Link
+                href={`/rooms/${roomId}/graph`}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:scale-105 transition"
               >
+                <Network size={16} />
+                Graph
+              </Link>
 
-                <Sparkles size={16} />
-
-                AI
-
+              <button
+                onClick={() => { setIsTasksOpen(!isTasksOpen); setAiPanelOpen(false); }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition hover:scale-105 ${isTasksOpen ? "bg-blue-600 text-foreground" : "bg-card text-foreground"}`}
+              >
+                <CheckCircle2 size={16} />
+                Tasks
               </button>
+
+              {currentUserRole === "owner" && (
+                <button
+                  onClick={handleAIToggle}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition hover:scale-105 ${aiEnabled ? "bg-indigo-600 text-foreground" : "bg-gray-600 text-gray-300"}`}
+                >
+                  <Sparkles size={16} />
+                  {aiEnabled ? "AI On" : "AI Off"}
+                </button>
+              )}
+
+              <button
+                onClick={() => setAiPanelOpen(!aiPanelOpen)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition ${aiPanelOpen ? "bg-blue-600 text-foreground" : "bg-card text-foreground hover:bg-zinc-700"}`}
+              >
+                <Sparkles size={16} />
+                AI
+              </button>
+
+              {inCall ? (
+                <button
+                  onClick={leaveCall}
+                  className="flex items-center gap-2 bg-red-500/10 text-red-400 border border-red-500/20 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-red-500/20 transition"
+                >
+                  <PhoneOff size={16} />
+                  Leave Call
+                </button>
+              ) : (
+                <button
+                  onClick={startCall}
+                  className="flex items-center gap-2 bg-blue-500 text-foreground px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-600 transition shadow-lg shadow-blue-500/20"
+                >
+                  <Phone size={16} />
+                  Join Call
+                </button>
+              )}
 
               <div className="
                 flex
                 items-center
                 gap-2
+                px-4
+                py-2
+                rounded-xl
+                bg-card
                 text-sm
+                font-medium
               ">
-
-                <Wifi size={14} />
-
-                <span
-                  className={`
-                    font-semibold
-                    ${
-                      connectionStatus ===
-                      "Connected"
-
-                        ? "text-green-500"
-
-                        : connectionStatus ===
-                          "Connecting..."
-
-                        ? "text-yellow-500"
-
-                        : "text-red-500"
-                    }
-                  `}
-                >
-
-                  {connectionStatus}
-
-                </span>
-
+                <Wifi
+                  size={16}
+                  className={
+                    connectionStatus === "Connected"
+                      ? "text-emerald-400"
+                      : "text-red-400"
+                  }
+                />
+                {connectionStatus}
               </div>
-
-            </div>
-
-
-            <div className="
-              flex
-              items-center
-              gap-3
-              px-4
-              py-3
-              rounded-2xl
-              border
-              border-zinc-800
-              bg-zinc-950
-            ">
-
-              <Users size={18} />
-
-              <div className="
-                text-sm
-                text-zinc-300
-              ">
-
-                {onlineUsers.length > 0
-
-                  ? onlineUsers.join(", ")
-
-                  : "No users online"}
-
-              </div>
-
             </div>
 
           </div>
 
+          {/* VIDEO GRID */}
+          {inCall && (
+            <VideoGrid 
+              localStream={localStream}
+              remoteStreams={remoteStreams}
+              onLeaveCall={leaveCall}
+              currentUser={currentUsername || "You"}
+            />
+          )}
 
           {/* MESSAGES */}
 
           <div className="
             border
-            border-zinc-800
-            bg-zinc-950/80
+            border-border
+            bg-background/80
             backdrop-blur-xl
             rounded-3xl
             p-6
@@ -962,7 +1049,7 @@ export default function RoomPage() {
             {messages.length === 0 && (
 
               <div className="
-                text-zinc-500
+                text-muted-foreground
                 text-center
                 mt-10
               ">
@@ -983,16 +1070,18 @@ export default function RoomPage() {
 
                   <div
                     key={`${msg.id}-${index}`}
-                    className="
-                      bg-zinc-900/80
+                    className={`
                       border
-                      border-zinc-800
                       rounded-2xl
                       px-5
                       py-4
                       backdrop-blur-lg
                       shadow-lg
-                    "
+                      ${msg.username === "Rework AI" 
+                        ? "bg-indigo-950/40 border-indigo-500/30" 
+                        : "bg-muted/80 border-border"
+                      }
+                    `}
                   >
 
                     <div className="
@@ -1003,20 +1092,23 @@ export default function RoomPage() {
                       mb-2
                     ">
 
-                      <div className="
+                      <div className={`
                         text-sm
                         font-semibold
-                        text-white
-                      ">
+                        flex
+                        items-center
+                        gap-2
+                        ${msg.username === "Rework AI" ? "text-indigo-400" : "text-foreground"}
+                      `}>
 
-                        {msg.username ||
-                          "User"}
+                        {msg.username === "Rework AI" && <Sparkles size={16} className="text-indigo-400" />}
+                        {msg.username || "User"}
 
                       </div>
 
                       <div className="
                         text-xs
-                        text-zinc-500
+                        text-muted-foreground
                       ">
 
                         {formatTime(
@@ -1028,13 +1120,36 @@ export default function RoomPage() {
                     </div>
 
                     <div className="
-                      text-zinc-300
+                      text-foreground
                       break-words
                       leading-relaxed
+                      whitespace-pre-wrap
                     ">
 
                       {msg.content ||
                         msg.message}
+
+                      {msg.extra_data?.file_url && (
+                        <div className="mt-3">
+                          {msg.extra_data.file_type?.startsWith("image/") ? (
+                            <img 
+                              src={`http://localhost:8000${msg.extra_data.file_url}`} 
+                              alt="attachment" 
+                              className="max-h-60 rounded-xl border border-border object-cover"
+                            />
+                          ) : (
+                            <a 
+                              href={`http://localhost:8000${msg.extra_data.file_url}`} 
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 px-4 py-3 bg-card hover:bg-zinc-700 transition rounded-xl border border-border w-max"
+                            >
+                              <FileIcon size={18} className="text-muted-foreground" />
+                              <span className="text-sm text-foreground font-medium">{msg.extra_data.file_name}</span>
+                            </a>
+                          )}
+                        </div>
+                      )}
 
                     </div>
 
@@ -1056,13 +1171,55 @@ export default function RoomPage() {
             <div className="
               mb-3
               text-sm
-              text-zinc-400
+              text-muted-foreground
               italic
               animate-pulse
             ">
 
               {typingUser} is typing...
 
+            </div>
+          )}
+
+          {/* FILE UPLOAD PREVIEW */}
+          {selectedFile && (
+            <div className="mb-3 p-3 bg-muted border border-border rounded-xl flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <FileIcon size={20} className="text-blue-400" />
+                <div>
+                  <div className="text-sm text-foreground font-medium">{selectedFile.name}</div>
+                  <div className="text-xs text-muted-foreground">{(selectedFile.size / 1024).toFixed(1)} KB</div>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={parseWithAI} 
+                    onChange={(e) => setParseWithAI(e.target.checked)}
+                    className="accent-blue-500"
+                    disabled={!aiEnabled}
+                  />
+                  <span className="text-sm text-muted-foreground">Parse with AI</span>
+                </label>
+                
+                <button 
+                  onClick={() => setSelectedFile(null)}
+                  className="text-sm text-red-400 hover:text-red-300 transition"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {uploadProgress > 0 && uploadProgress < 100 && (
+            <div className="mb-3 h-1 w-full bg-card rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-blue-500 transition-all duration-300" 
+                style={{ width: `${uploadProgress}%` }}
+              />
             </div>
           )}
 
@@ -1079,14 +1236,14 @@ export default function RoomPage() {
             <input
               className="
                 flex-1
-                bg-zinc-950
+                bg-background
                 border
-                border-zinc-800
+                border-border
                 rounded-2xl
                 px-5
                 py-4
                 outline-none
-                text-white
+                text-foreground
                 text-sm
                 focus:border-white
                 transition
@@ -1133,22 +1290,48 @@ export default function RoomPage() {
                 or implementation thoughts...
               "
             />
+            
+            <label className="
+                h-14
+                w-14
+                rounded-2xl
+                bg-card
+                text-foreground
+                flex
+                items-center
+                justify-center
+                hover:bg-zinc-700
+                transition
+                cursor-pointer
+              ">
+              <Paperclip size={18} />
+              <input 
+                type="file" 
+                className="hidden" 
+                onChange={(e) => {
+                  if (e.target.files && e.target.files.length > 0) {
+                    setSelectedFile(e.target.files[0]);
+                  }
+                }}
+              />
+            </label>
 
             <button
               className="
                 h-14
                 w-14
                 rounded-2xl
-                bg-white
-                text-black
+                bg-primary
+                text-primary-foreground
                 flex
                 items-center
                 justify-center
                 hover:scale-105
                 transition
                 shadow-xl
+                disabled:opacity-50
               "
-
+              disabled={uploadProgress > 0 && uploadProgress < 100}
               onClick={sendMessage}
             >
 
@@ -1167,8 +1350,8 @@ export default function RoomPage() {
           w-full
           lg:w-[320px]
           border
-          border-zinc-800
-          bg-zinc-950/80
+          border-border
+          bg-background/80
           backdrop-blur-xl
           rounded-3xl
           shadow-2xl
@@ -1197,10 +1380,10 @@ export default function RoomPage() {
 
                 className="
                   border
-                  border-zinc-800
+                  border-border
                   rounded-2xl
                   p-4
-                  bg-zinc-900/60
+                  bg-muted/60
                 "
               >
 
@@ -1221,7 +1404,7 @@ export default function RoomPage() {
                     className="
                       mb-3
                       w-full
-                      bg-zinc-800
+                      bg-card
                       hover:bg-zinc-700
                       transition
                       rounded-xl
@@ -1247,7 +1430,7 @@ export default function RoomPage() {
 
                     <div className="
                       font-semibold
-                      text-white
+                      text-foreground
                     ">
 
                       {member.username}
@@ -1256,7 +1439,7 @@ export default function RoomPage() {
 
                     <div className="
                       text-xs
-                      text-zinc-400
+                      text-muted-foreground
                       uppercase
                     ">
 
@@ -1369,7 +1552,6 @@ export default function RoomPage() {
                         member.user_id
                       )
                     }
-
                     className="
                       bg-red-600
                       hover:bg-red-700
@@ -1385,24 +1567,36 @@ export default function RoomPage() {
 
                   </button>
                 )}
-
               </div>
             ))}
-
           </div>
-
         </div>
-
       </div>
 
       {/* AI ASSISTANT PANEL */}
       <AIAssistantPanel
         roomId={roomId}
         isOpen={aiPanelOpen}
-        onToggle={() =>
-          setAiPanelOpen(!aiPanelOpen)
-        }
+        onToggle={() => setAiPanelOpen(false)}
       />
+
+      {/* TASKS PANEL */}
+      <div 
+        className={`
+          fixed top-0 right-0 h-full w-[400px] z-40 bg-background/80 backdrop-blur-md border-l border-border shadow-2xl transition-transform duration-300 ease-in-out p-6 pt-24
+          ${isTasksOpen ? "translate-x-0" : "translate-x-full"}
+        `}
+      >
+        <button 
+          onClick={() => setIsTasksOpen(false)}
+          className="absolute top-6 left-6 p-2 bg-muted rounded-full text-muted-foreground hover:text-foreground transition"
+        >
+          <X size={16} />
+        </button>
+        <div className="mt-8 h-[calc(100%-2rem)]">
+          <TaskList roomId={roomId} currentUsername={currentUsername || ""} />
+        </div>
+      </div>
 
     </div>
   );

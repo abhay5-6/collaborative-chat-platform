@@ -51,8 +51,11 @@ Schema:
   "domain": "general",
   "importance_score": 3,
   "tags": [],
-  "content": "memory text"
+  "content": "memory text",
+  "assignee": null
 }}
+
+If the message describes an action item or a to-do, set memory_type to "task" and if a person is mentioned to do it, set "assignee" to their name (otherwise null).
 
 Allowed memory_type values:
 
@@ -106,7 +109,7 @@ Message:
 
     try:
 
-        response = client.models.generate_content(
+        response = await client.aio.models.generate_content(
             model=GEMINI_MODEL,
             contents=prompt,
         )
@@ -158,6 +161,11 @@ Message:
         parsed.setdefault(
             "content",
             ""
+        )
+        
+        parsed.setdefault(
+            "assignee",
+            None
         )
 
         try:

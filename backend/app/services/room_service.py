@@ -33,6 +33,7 @@ async def create_room(
         name=room_data.name,
         description=room_data.description,
         is_private=room_data.is_private,
+        ai_enabled=room_data.ai_enabled,
         owner_id=creator.id
     )
 
@@ -121,6 +122,7 @@ async def get_rooms(
             "name": room.name,
             "description": room.description,
             "is_private": room.is_private,
+            "ai_enabled": room.ai_enabled,
             "owner_id": room.owner_id,
             "is_member": membership is not None,
             "role": membership.role if membership else None,
@@ -130,6 +132,39 @@ async def get_rooms(
     return {
         "items": room_list,
         "total": total_rooms
+    }
+
+
+async def get_room_by_id(
+    db: AsyncSession,
+    room_id: int,
+    current_user: User
+):
+    result = await db.execute(
+        select(Room).where(Room.id == room_id)
+    )
+    room = result.scalar()
+    
+    if not room:
+        return None
+
+    membership_result = await db.execute(
+        select(RoomMembership).where(
+            RoomMembership.user_id == current_user.id,
+            RoomMembership.room_id == room_id
+        )
+    )
+    membership = membership_result.scalar()
+
+    return {
+        "id": room.id,
+        "name": room.name,
+        "description": room.description,
+        "is_private": room.is_private,
+        "ai_enabled": room.ai_enabled,
+        "owner_id": room.owner_id,
+        "is_member": membership is not None,
+        "role": membership.role if membership else None
     }
 
 
@@ -551,5 +586,26 @@ async def reject_join_request(
 
     return "rejected"
 
+
+async def toggle_room_ai(
+    db: AsyncSession,
+    room_id: int,
+    ai_enabled: bool,
+    user: User
+):
+    room_result = await db.execute(
+        select(Room).where(Room.id == room_id)
+    )
+    room = room_result.scalar()
+
+    if not room:
+        return "room_not_found"
+
+    if room.owner_id != user.id:
+        return "not_owner"
+
+    room.ai_enabled = ai_enabled
+    await db.commit()
+    return "updated"
 
 

@@ -5,6 +5,10 @@ class RoomCreate(BaseModel):
     name: str
     description: str | None = None
     is_private: bool = False
+    ai_enabled: bool = True
+
+class RoomUpdate(BaseModel):
+    ai_enabled: bool
 
 
 class RoomResponse(BaseModel):
@@ -22,6 +26,8 @@ class RoomResponse(BaseModel):
     is_member: bool
 
     role: str | None = None
+
+    ai_enabled: bool = True
 
     class Config:
         from_attributes = True

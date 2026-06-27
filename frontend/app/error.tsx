@@ -17,11 +17,11 @@ export default function Error({
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center px-6">
-      <div className="w-full max-w-md rounded-lg border border-white/10 bg-white/[0.04] p-6 shadow-2xl">
-        <h2 className="text-xl font-semibold text-white">
+      <div className="w-full max-w-md rounded-lg border border-white/10 bg-primary/[0.04] p-6 shadow-2xl">
+        <h2 className="text-xl font-semibold text-foreground">
           Something went wrong
         </h2>
-        <p className="mt-2 text-sm leading-6 text-white/70">
+        <p className="mt-2 text-sm leading-6 text-foreground/70">
           Rework hit a recoverable page error. Your session is still intact.
         </p>
         <button

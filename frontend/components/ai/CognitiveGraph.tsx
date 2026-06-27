@@ -1,365 +1,178 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import dynamic from "next/dynamic";
+import { Loader2 } from "lucide-react";
 
-import ReactFlow, {
-
-  Background,
-  Controls,
-  MiniMap,
-  Node,
-  Edge,
-  NodeProps,
-  Handle,
-  Position,
-
-} from "reactflow";
-
-import {
-  Brain,
-  Network,
-  Sparkles,
-} from "lucide-react";
-
-import "reactflow/dist/style.css";
-
-
-type CognitiveNodeData = {
-  label: string;
-  domain: string;
-  importance: number;
-};
-
-type GraphNode = Node<CognitiveNodeData>;
-
-type GraphEdge = Edge;
-
-
-function getDomainColor(
-  domain: string
-) {
-
-  const lower =
-    domain.toLowerCase();
-
-  if (
-    lower.includes(
-      "architecture"
-    )
-  ) {
-    return "from-cyan-500 to-blue-500";
-  }
-
-  if (
-    lower.includes(
-      "backend"
-    )
-  ) {
-    return "from-purple-500 to-pink-500";
-  }
-
-  if (
-    lower.includes(
-      "frontend"
-    )
-  ) {
-    return "from-orange-500 to-yellow-500";
-  }
-
-  if (
-    lower.includes(
-      "database"
-    )
-  ) {
-    return "from-emerald-500 to-green-500";
-  }
-
-  return "from-neutral-700 to-neutral-500";
-}
-
-
-function CognitiveNode({
-
-  data
-
-}: NodeProps<CognitiveNodeData>) {
-
-  const gradient =
-    getDomainColor(
-      data.domain
-    );
-
-  return (
-
-    <div
-      className={`
-        min-w-[260px]
-        max-w-[300px]
-        rounded-2xl
-        border
-        border-neutral-800
-        bg-neutral-950/95
-        backdrop-blur-xl
-        shadow-2xl
-        overflow-hidden
-      `}
-    >
-
-      <Handle
-        type="target"
-        position={Position.Top}
-        className="bg-white"
-      />
-
-      {/* TOP BAR */}
-
-      <div className={`
-        h-1 w-full
-        bg-gradient-to-r
-        ${gradient}
-      `} />
-
-      <div className="
-        p-4
-      ">
-
-        <div className="
-          flex
-          items-center
-          justify-between
-          mb-3
-        ">
-
-          <div className="
-            flex
-            items-center
-            gap-2
-            text-xs
-            text-neutral-400
-            uppercase
-            tracking-wide
-          ">
-
-            <Brain size={14} />
-
-            Memory Node
-
-          </div>
-
-          <div className="
-            flex
-            items-center
-            gap-1
-            text-yellow-400
-            text-xs
-          ">
-
-            <Sparkles size={12} />
-
-            {data.importance}
-
-          </div>
-
-        </div>
-
-
-        <div className="
-          text-sm
-          leading-relaxed
-          text-neutral-100
-          font-medium
-          mb-4
-        ">
-
-          {data.label}
-
-        </div>
-
-
-        <div className="
-          flex
-          items-center
-          gap-2
-          text-[11px]
-          text-neutral-500
-        ">
-
-          <Network size={11} />
-
-          {data.domain}
-
-        </div>
-
-      </div>
-
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="bg-white"
-      />
-
+// Dynamically import react-force-graph-2d to avoid SSR issues
+const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+      <Loader2 className="animate-spin mb-4" size={32} />
+      <p>Loading physics engine...</p>
     </div>
-  );
-}
+  ),
+});
 
-
-export default function CognitiveGraph({
-
-  roomId
-
-}: {
-
-  roomId: number
-}) {
-
-  const [nodes, setNodes] =
-    useState<GraphNode[]>([]);
-
-  const [edges, setEdges] =
-    useState<GraphEdge[]>([]);
-
-  const [loading, setLoading] =
-    useState(true);
-
+export default function CognitiveGraph({ roomId }: { roomId: number }) {
+  const [graphData, setGraphData] = useState({ nodes: [], links: [] });
+  const [loading, setLoading] = useState(true);
+  const fgRef = useRef<any>();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
 
   useEffect(() => {
-
     async function loadGraph() {
-
       try {
+        const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ai/graph/${roomId}`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        
+        if (!res.ok) {
+          throw new Error(`Failed to load graph: ${res.status}`);
+        }
+        
+        const data = await res.json();
 
-        const res = await fetch(
+        // Format data for react-force-graph
+        const nodes = data.nodes.map((node: any) => ({
+          id: node.id,
+          name: node.data.label,
+          domain: node.data.domain,
+          val: node.data.importance * 2, // Scale up for visual weight
+          type: node.type
+        }));
 
-          `${process.env
-            .NEXT_PUBLIC_API_URL}/ai/graph/${roomId}`
-        );
+        const links = data.edges.map((edge: any) => ({
+          source: edge.source,
+          target: edge.target,
+          label: edge.label,
+        }));
 
-        const data =
-          await res.json();
-
-        setNodes(data.nodes);
-
-        setEdges(data.edges);
-
+        setGraphData({ nodes, links });
       } catch (error) {
-
-        console.error(
-          "GRAPH LOAD ERROR",
-          error
-        );
-
+        console.error("GRAPH LOAD ERROR", error);
       } finally {
-
         setLoading(false);
       }
     }
 
     loadGraph();
-
   }, [roomId]);
 
+  // Handle responsive resizing
+  useEffect(() => {
+    const handleResize = () => {
+      if (containerRef.current) {
+        setDimensions({
+          width: containerRef.current.clientWidth,
+          height: containerRef.current.clientHeight
+        });
+      }
+    };
+    
+    // Initial size
+    handleResize();
+    
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
-  const nodeTypes = useMemo(() => ({
+  // Custom node painting
+  const paintNode = useCallback((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+    const label = node.name;
+    const fontSize = 12 / globalScale;
+    ctx.font = `${fontSize}px Inter, sans-serif`;
+    
+    // Determine color based on domain
+    let color = "#525252"; // default neutral
+    const domain = node.domain?.toLowerCase() || "";
+    if (domain.includes("architecture")) color = "#06b6d4"; // cyan
+    else if (domain.includes("backend")) color = "#a855f7"; // purple
+    else if (domain.includes("frontend")) color = "#f97316"; // orange
+    else if (domain.includes("database")) color = "#10b981"; // emerald
 
-    cognitiveNode:
-      CognitiveNode,
+    // Draw node circle
+    const r = Math.sqrt(Math.max(0, node.val || 1)) * 4;
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, r, 0, 2 * Math.PI, false);
+    ctx.fillStyle = color;
+    ctx.fill();
+    
+    // Draw subtle glow
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 10;
+    ctx.fill();
+    ctx.shadowBlur = 0; // reset
 
-  }), []);
-
-
-  const transformedNodes = useMemo(() => (
-
-    nodes.map((node: GraphNode) => ({
-
-      ...node,
-
-      type: "cognitiveNode",
-    }))
-
-  ), [nodes]);
-
+    // Draw text label
+    const textWidth = ctx.measureText(label).width;
+    const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2); 
+    
+    ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+    ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y + r + 2, bckgDimensions[0], bckgDimensions[1]);
+    
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(label, node.x, node.y + r + 2 + bckgDimensions[1] / 2);
+  }, []);
 
   if (loading) {
-
     return (
-
-      <div className="
-        h-[800px]
-        rounded-3xl
-        border
-        border-neutral-800
-        bg-neutral-950
-        flex
-        items-center
-        justify-center
-        text-neutral-500
-      ">
-
-        Loading cognition graph...
-
+      <div className="h-[800px] rounded-3xl border border-border bg-background flex flex-col items-center justify-center text-muted-foreground shadow-2xl">
+        <Loader2 className="animate-spin mb-4" size={32} />
+        <p>Analyzing AI memory vault...</p>
       </div>
     );
   }
 
-
   return (
+    <div 
+      ref={containerRef}
+      className="w-full h-[800px] rounded-3xl overflow-hidden border border-border bg-background shadow-2xl relative"
+    >
+      <div className="absolute top-4 left-4 z-10 pointer-events-none">
+        <h2 className="text-foreground font-bold text-lg mb-1 flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          Neural Context Graph
+        </h2>
+        <p className="text-muted-foreground text-xs uppercase tracking-widest font-mono">
+          {graphData.nodes.length} Nodes • {graphData.links.length} Synapses
+        </p>
+      </div>
+      
+      <div className="absolute bottom-4 left-4 z-10 flex gap-4 text-[10px] uppercase font-mono tracking-wider pointer-events-none">
+        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#06b6d4]" /> Architecture</div>
+        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#a855f7]" /> Backend</div>
+        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#f97316]" /> Frontend</div>
+        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#10b981]" /> Database</div>
+      </div>
 
-    <div className="
-      w-full
-      h-[800px]
-      rounded-3xl
-      overflow-hidden
-      border
-      border-neutral-800
-      bg-neutral-950
-      shadow-2xl
-    ">
-
-      <ReactFlow
-
-        nodes={transformedNodes}
-
-        edges={edges}
-
-        fitView
-
-        nodeTypes={nodeTypes}
-
-        proOptions={{
-          hideAttribution: true
+      <ForceGraph2D
+        ref={fgRef}
+        width={dimensions.width}
+        height={dimensions.height}
+        graphData={graphData}
+        nodeLabel={() => ""} // Custom label drawing in paintNode
+        nodeCanvasObject={paintNode}
+        nodeCanvasObjectMode={() => "replace"}
+        linkColor={() => "rgba(255, 255, 255, 0.1)"}
+        linkWidth={1.5}
+        linkDirectionalParticles={2}
+        linkDirectionalParticleWidth={1.5}
+        linkDirectionalParticleSpeed={0.005}
+        backgroundColor="#000000"
+        onEngineStop={() => {
+          if (fgRef.current) {
+            fgRef.current.zoomToFit(400, 50);
+          }
         }}
-
-      >
-
-        <MiniMap
-          pannable
-          zoomable
-          className="
-            !bg-neutral-950
-            !border
-            !border-neutral-800
-          "
-        />
-
-        <Controls
-          className="
-            !bg-neutral-950
-            !border-neutral-800
-          "
-        />
-
-        <Background
-          gap={24}
-          size={1}
-          color="#222"
-        />
-
-      </ReactFlow>
-
+      />
     </div>
   );
 }

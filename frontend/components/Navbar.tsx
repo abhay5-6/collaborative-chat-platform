@@ -1,315 +1,102 @@
 "use client";
 
 import Link from "next/link";
-
-import {
-  useRouter,
-  usePathname,
-} from "next/navigation";
-
-import {
-  BrainCircuit,
-  LayoutGrid,
-  LogOut,
-} from "lucide-react";
-
-import {
-  useAuth
-} from "@/components/AuthProvider";
-
-import NotificationBell
-from "@/components/NotificationBell";
-
+import { useRouter, usePathname } from "next/navigation";
+import { BrainCircuit, LayoutGrid, LogOut } from "lucide-react";
+import { useAuth } from "@/components/AuthProvider";
+import NotificationBell from "@/components/NotificationBell";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function Navbar() {
-
-  const router =
-    useRouter();
-
-  const pathname =
-    usePathname();
-
-  const auth =
-    useAuth();
-
+  const router = useRouter();
+  const pathname = usePathname();
+  const auth = useAuth();
 
   function handleLogout() {
-
     auth.logout();
-
     router.push("/login");
-
     router.refresh();
   }
 
-
-  function isActive(
-    path: string
-  ) {
-
-    return pathname.startsWith(
-      path
-    );
+  function isActive(path: string) {
+    return pathname.startsWith(path);
   }
 
-
   return (
-
-    <nav className="
-      sticky
-      top-0
-      z-50
-      w-full
-      border-b
-      border-neutral-800
-      bg-[#0b0f1a]/70
-      backdrop-blur-xl
-    ">
-
-      <div className="
-        max-w-7xl
-        mx-auto
-        px-6
-        py-4
-        flex
-        items-center
-        justify-between
-      ">
-
+    <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-xl">
+      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* LEFT */}
-
-        <div className="
-          flex
-          items-center
-          gap-10
-        ">
-
-          <Link
-            href="/"
-            className="
-              flex
-              items-center
-              gap-3
-              group
-            "
-          >
-
-            <div className="
-              h-10
-              w-10
-              rounded-2xl
-              bg-white
-              text-black
-              flex
-              items-center
-              justify-center
-              font-bold
-              shadow-lg
-              group-hover:scale-105
-              transition
-            ">
-
-              <BrainCircuit
-                size={20}
-              />
-
+        <div className="flex items-center gap-10">
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="h-10 w-10 rounded-2xl bg-foreground text-background flex items-center justify-center font-bold shadow-lg group-hover:scale-105 transition">
+              <BrainCircuit size={20} />
             </div>
-
             <div>
-
-              <div className="
-                text-xl
-                font-semibold
-                tracking-tight
-                text-white
-              ">
-
+              <div className="text-xl font-semibold tracking-tight text-foreground">
                 Rework
-
               </div>
-
-              <div className="
-                text-[11px]
-                uppercase
-                tracking-[0.2em]
-                text-neutral-500
-              ">
-
+              <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
                 Cognitive Workspace
-
               </div>
-
             </div>
-
           </Link>
 
-
           {auth.isAuthenticated && (
-
-            <div className="
-              flex
-              items-center
-              gap-2
-            ">
-
+            <div className="flex items-center gap-2">
               <Link
                 href="/rooms"
-                className={`
-                  flex
-                  items-center
-                  gap-2
-                  px-4
-                  py-2
-                  rounded-xl
-                  text-sm
-                  transition
-
-                  ${isActive("/rooms")
-                    ? `
-                      bg-[rgba(88,101,242,0.18)]
-                      text-white
-                      border
-                      border-[rgba(88,101,242,0.45)]
-                    `
-                    : `
-                      text-neutral-400
-                      hover:text-white
-                      hover:bg-neutral-900
-                    `
-                  }
-                `}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition ${
+                  isActive("/rooms")
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                }`}
               >
-
-                <LayoutGrid
-                  size={16}
-                />
-
+                <LayoutGrid size={16} />
                 Rooms
-
               </Link>
-
             </div>
           )}
-
         </div>
 
-
         {/* RIGHT */}
-
-        <div className="
-          flex
-          items-center
-          gap-4
-        ">
+        <div className="flex items-center gap-4">
+          <ThemeToggle />
 
           {auth.isAuthenticated ? (
-
             <>
-
-              <div className="
-                hidden
-                md:flex
-                items-center
-                gap-2
-                px-3
-                py-2
-                rounded-xl
-                border
-                border-neutral-800
-                bg-neutral-950
-                text-xs
-                text-neutral-400
-              ">
-
+              <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-muted/50 text-xs text-muted-foreground">
                 AI Memory Active
-
               </div>
-
 
               <NotificationBell />
 
-
               <button
-                onClick={
-                  handleLogout
-                }
-                className="
-                  flex
-                  items-center
-                  gap-2
-                  px-4
-                  py-2
-                  rounded-xl
-                  bg-white
-                  text-black
-                  font-medium
-                  hover:scale-105
-                  transition
-                "
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-foreground text-background font-medium hover:opacity-90 transition"
               >
-
-                <LogOut
-                  size={16}
-                />
-
+                <LogOut size={16} />
                 Logout
-
               </button>
-
             </>
-
           ) : (
-
-            <div className="
-              flex
-              items-center
-              gap-3
-            ">
-
+            <div className="flex items-center gap-3">
               <Link
                 href="/login"
-                className="
-                  px-4
-                  py-2
-                  rounded-xl
-                  text-neutral-400
-                  hover:text-white
-                  hover:bg-neutral-900
-                  transition
-                "
+                className="px-4 py-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition"
               >
-
                 Login
-
               </Link>
-
 
               <Link
                 href="/register"
-                className="
-                  px-5
-                  py-2.5
-                  rounded-xl
-                  bg-white
-                  text-black
-                  font-semibold
-                  hover:scale-105
-                  transition
-                  shadow-lg
-                "
+                className="px-5 py-2.5 rounded-xl bg-foreground text-background font-semibold hover:opacity-90 transition shadow-lg"
               >
-
                 Register
-
               </Link>
-
             </div>
           )}
-
         </div>
-
       </div>
-
     </nav>
   );
 }

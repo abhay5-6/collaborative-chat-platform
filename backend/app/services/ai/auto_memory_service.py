@@ -25,6 +25,8 @@ from app.services.ai.memory_graph_service import (
     build_memory_relationships
 )
 
+from app.models.room_task import RoomTask
+
 from app.core.config import (
     MEMORY_MAX_CONTENT_LENGTH,
     MEMORY_MIN_CONTENT_LENGTH,
@@ -40,6 +42,7 @@ async def process_message_for_memory(
     user_id: int,
     message_id: int,
     message_content: str,
+    extra_data: dict = None,
 ):
     logger.info(
         "message_ingestion_started",
@@ -50,8 +53,16 @@ async def process_message_for_memory(
         },
     )
 
-    if not message_content or not message_content.strip():
+    if not message_content and not extra_data:
         return None
+
+    extra_data = extra_data or {}
+    ai_parse = extra_data.get("ai_parse", False)
+    file_url = extra_data.get("file_url")
+
+    if file_url and ai_parse:
+        file_name = extra_data.get("file_name", file_url)
+        message_content += f"\n\n[Attached File: {file_name}]"
 
     # STEP 1 - Embed and persist message
 
@@ -192,6 +203,16 @@ async def process_message_for_memory(
 
     print(f"STEP 5 DONE: Memory created (id={memory.id})")
 
+    if memory.memory_type == "task":
+        task = RoomTask(
+            room_id=room_id,
+            description=content,
+            assignee_username=result.get("assignee")
+        )
+        db.add(task)
+        await db.flush()
+        print(f"STEP 5.5 DONE: Task extracted (id={task.id})")
+
     # STEP 6 - Build graph relationships
 
     await build_memory_relationships(
@@ -216,7 +237,8 @@ async def process_memory_background(
     room_id: int,
     user_id: int,
     message_id: int,
-    message_content: str,
+    content: str,
+    extra_data: dict = None
 ):
     print(f"BACKGROUND TASK STARTED: room_id={room_id}, user_id={user_id}, message_id={message_id}")
 
@@ -231,7 +253,8 @@ async def process_memory_background(
                     room_id=room_id,
                     user_id=user_id,
                     message_id=message_id,
-                    message_content=message_content,
+                    message_content=content,
+                    extra_data=extra_data,
                 )
 
             print(f"BACKGROUND TASK COMPLETED: room_id={room_id}, message_id={message_id}")

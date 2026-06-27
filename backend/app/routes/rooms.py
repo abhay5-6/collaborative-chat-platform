@@ -19,18 +19,21 @@ from app.db.session import get_db
 from app.schemas.room import (
     RoomCreate,
     RoomResponse,
+    RoomUpdate,
     RoomMemberResponse
 )
 
 from app.services.room_service import (
     create_room,
     get_rooms,
+    get_room_by_id,
     join_room,
     leave_room,
     delete_room,
     get_pending_requests,
     approve_join_request,
-    reject_join_request
+    reject_join_request,
+    toggle_room_ai
 )
 
 from app.services.member_service import (
@@ -119,6 +122,67 @@ async def list_rooms(
         "skip": skip,
         "limit": limit
     }
+
+
+@router.get("/join-requests")
+async def list_pending_requests(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    requests = await get_pending_requests(db, current_user)
+    return requests
+
+@router.post("/join-requests/{request_id}/approve")
+async def approve_request(
+    request_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = await approve_join_request(db, request_id, current_user)
+    if result == "request_not_found":
+        raise HTTPException(status_code=404, detail="Request not found")
+    if result == "not_owner":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if result == "already_member":
+        raise HTTPException(status_code=400, detail="Already member")
+    return {"message": "Request approved"}
+
+@router.post("/join-requests/{request_id}/reject")
+async def reject_request(
+    request_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = await reject_join_request(db, request_id, current_user)
+    if result == "request_not_found":
+        raise HTTPException(status_code=404, detail="Request not found")
+    if result == "not_owner":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    return {"message": "Request rejected"}
+
+@router.get(
+    "/{room_id}",
+    response_model=RoomResponse
+)
+async def get_room(
+
+    room_id: int,
+
+    db: AsyncSession = Depends(
+        get_db
+    ),
+
+    current_user: User = Depends(
+        get_current_user
+    )
+):
+    room = await get_room_by_id(db, room_id, current_user)
+    if not room:
+        raise HTTPException(
+            status_code=404,
+            detail="Room not found"
+        )
+    return room
 
 
 @router.post("/{room_id}/join")
@@ -271,120 +335,35 @@ async def delete_existing_room(
     }
 
 
-@router.get("/join-requests")
-async def list_pending_requests(
-
-    db: AsyncSession = Depends(
-        get_db
-    ),
-
-    current_user: User = Depends(
-        get_current_user
-    )
+@router.patch("/{room_id}")
+async def update_room(
+    room_id: int,
+    room_data: RoomUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
-
-    requests = (
-        await get_pending_requests(
-            db,
-            current_user
-        )
+    result = await toggle_room_ai(
+        db,
+        room_id,
+        room_data.ai_enabled,
+        current_user
     )
 
-    return requests
-
-
-@router.post(
-    "/join-requests/{request_id}/approve"
-)
-async def approve_request(
-
-    request_id: int,
-
-    db: AsyncSession = Depends(
-        get_db
-    ),
-
-    current_user: User = Depends(
-        get_current_user
-    )
-):
-
-    result = (
-        await approve_join_request(
-            db,
-            request_id,
-            current_user
-        )
-    )
-
-    if result == "request_not_found":
-
+    if result == "room_not_found":
         raise HTTPException(
             status_code=404,
-            detail="Request not found"
+            detail="Room not found"
         )
-
+    
     if result == "not_owner":
-
         raise HTTPException(
             status_code=403,
-            detail="Not authorized"
-        )
-
-    if result == "already_member":
-
-        raise HTTPException(
-            status_code=400,
-            detail="Already member"
+            detail="Only owner can update room"
         )
 
     return {
-        "message":
-            "Request approved"
-    }
-
-
-@router.post(
-    "/join-requests/{request_id}/reject"
-)
-async def reject_request(
-
-    request_id: int,
-
-    db: AsyncSession = Depends(
-        get_db
-    ),
-
-    current_user: User = Depends(
-        get_current_user
-    )
-):
-
-    result = (
-        await reject_join_request(
-            db,
-            request_id,
-            current_user
-        )
-    )
-
-    if result == "request_not_found":
-
-        raise HTTPException(
-            status_code=404,
-            detail="Request not found"
-        )
-
-    if result == "not_owner":
-
-        raise HTTPException(
-            status_code=403,
-            detail="Not authorized"
-        )
-
-    return {
-        "message":
-            "Request rejected"
+        "message": "Room updated successfully",
+        "ai_enabled": room_data.ai_enabled
     }
 
 
@@ -466,13 +445,14 @@ async def promote_room_member(
             detail="Member not found"
         )
 
-    if result == "cannot_modify_owner":
-        if result == "already_admin":
+    if result == "already_admin":
 
-            raise HTTPException(
-                status_code=400,
-                detail="User is already admin"
-            )
+        raise HTTPException(
+            status_code=400,
+            detail="User is already admin"
+        )
+
+    if result == "cannot_modify_owner":
 
         raise HTTPException(
             status_code=400,
@@ -590,20 +570,20 @@ async def remove_room_member(
             detail="Member not found"
         )
 
+    if result == "cannot_remove_self":
+
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot remove yourself"
+        )
+    if result == "cannot_remove_admin":
+
+        raise HTTPException(
+            status_code=403,
+            detail="Admin cannot remove another admin"
+        )
+
     if result == "cannot_remove_owner":
-        if result == "cannot_remove_self":
-
-            raise HTTPException(
-                status_code=400,
-                detail="Cannot remove yourself"
-            )
-        if result == "cannot_remove_admin":
-
-            raise HTTPException(
-                status_code=403,
-                detail="Admin cannot remove another admin"
-            )
-
         raise HTTPException(
             status_code=400,
             detail="Cannot remove owner"
