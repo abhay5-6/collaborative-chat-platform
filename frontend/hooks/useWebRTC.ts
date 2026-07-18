@@ -8,23 +8,43 @@ const iceServers = {
   ]
 };
 
-export function useWebRTC(roomId: string, currentUser: string, socketRef: React.MutableRefObject<WebSocket | null>) {
+type WebRTCSignalData = {
+  sender_username: string;
+  target_username?: string;
+  offer?: RTCSessionDescriptionInit;
+  answer?: RTCSessionDescriptionInit;
+  candidate?: RTCIceCandidateInit;
+};
+
+type WebRTCSignalMessage = {
+  type: string;
+  data: WebRTCSignalData;
+};
+
+export function useWebRTC(roomId: number, currentUser: string, socketRef: React.MutableRefObject<WebSocket | null>) {
+  void roomId;
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<{ [username: string]: MediaStream }>({});
   const [inCall, setInCall] = useState(false);
   const inCallRef = useRef(false);
   
   const peerConnections = useRef<{ [username: string]: RTCPeerConnection }>({});
+  const iceCandidatesQueue = useRef<{ [username: string]: RTCIceCandidateInit[] }>({});
+  const isProcessingRef = useRef(false);
+  const messageQueue = useRef<WebRTCSignalMessage[]>([]);
 
   const startCall = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       setLocalStream(stream);
+      localStreamRef.current = stream;
       setInCall(true);
       inCallRef.current = true;
       
       // Announce to the room that we joined
       if (socketRef.current?.readyState === WebSocket.OPEN) {
+        console.log("Sending join_call");
         socketRef.current.send(JSON.stringify({
           type: "join_call",
           data: {}
@@ -37,10 +57,11 @@ export function useWebRTC(roomId: string, currentUser: string, socketRef: React.
   }, [socketRef]);
 
   const leaveCall = useCallback(() => {
-    if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
     }
     setLocalStream(null);
+    localStreamRef.current = null;
     setRemoteStreams({});
     setInCall(false);
     inCallRef.current = false;
@@ -55,7 +76,7 @@ export function useWebRTC(roomId: string, currentUser: string, socketRef: React.
         data: {}
       }));
     }
-  }, [localStream, socketRef]);
+  }, [socketRef]);
 
   const createPeerConnection = useCallback((targetUsername: string, isInitiator: boolean) => {
     if (peerConnections.current[targetUsername]) {
@@ -66,9 +87,9 @@ export function useWebRTC(roomId: string, currentUser: string, socketRef: React.
     peerConnections.current[targetUsername] = pc;
 
     // Add local tracks
-    if (localStream) {
-      localStream.getTracks().forEach(track => {
-        pc.addTrack(track, localStream);
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => {
+        pc.addTrack(track, localStreamRef.current!);
       });
     }
 
@@ -87,21 +108,23 @@ export function useWebRTC(roomId: string, currentUser: string, socketRef: React.
 
     // Handle remote tracks
     pc.ontrack = (event) => {
+      const stream = event.streams && event.streams.length > 0 
+        ? event.streams[0] 
+        : new MediaStream([event.track]);
+        
       setRemoteStreams(prev => ({
         ...prev,
-        [targetUsername]: event.streams[0]
+        [targetUsername]: stream
       }));
     };
 
+    pc.oniceconnectionstatechange = () => {
+      console.log(`ICE Connection State [${targetUsername}]:`, pc.iceConnectionState);
+    };
+
     pc.onconnectionstatechange = () => {
-      if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
-        setRemoteStreams(prev => {
-          const next = { ...prev };
-          delete next[targetUsername];
-          return next;
-        });
-        delete peerConnections.current[targetUsername];
-      }
+      console.log(`Connection State [${targetUsername}]:`, pc.connectionState);
+      // Removed leaveCall() here to prevent it from tearing down the call for temporary failures
     };
 
     if (isInitiator) {
@@ -122,75 +145,128 @@ export function useWebRTC(roomId: string, currentUser: string, socketRef: React.
     }
 
     return pc;
-  }, [localStream, socketRef]);
+  }, [socketRef]);
 
-  const handleSignalingData = useCallback(async (msg: any) => {
-    if (!inCallRef.current) return;
+  const processMessageQueue = useCallback(async () => {
+    if (isProcessingRef.current || messageQueue.current.length === 0) return;
+    isProcessingRef.current = true;
 
-    const { type, data } = msg;
-    const sender = data.sender_username;
-    const target = data.target_username;
-
-    // Ignore our own broadcasts
-    if (sender === currentUser) return;
-
-    switch (type) {
-      case "join_call":
-        // Someone joined, we should initiate a connection to them
-        createPeerConnection(sender, true);
-        break;
-
-      case "leave_call":
-        if (peerConnections.current[sender]) {
-          peerConnections.current[sender].close();
-          delete peerConnections.current[sender];
-          setRemoteStreams(prev => {
-            const next = { ...prev };
-            delete next[sender];
-            return next;
-          });
-        }
-        break;
-
-      case "webrtc_offer":
-        if (target !== currentUser) return;
-        const pcOffer = createPeerConnection(sender, false);
-        await pcOffer.setRemoteDescription(new RTCSessionDescription(data.offer));
-        const answer = await pcOffer.createAnswer();
+    try {
+      while (messageQueue.current.length > 0) {
+        const msg = messageQueue.current.shift();
+        if (!msg) continue;
         
-        if (socketRef.current?.readyState === WebSocket.OPEN) {
-          socketRef.current.send(JSON.stringify({
-            type: "webrtc_answer",
-            data: {
-              target_username: sender,
-              answer: answer
+        const { type, data } = msg;
+        const sender = data.sender_username;
+        const target = data.target_username;
+
+        if (sender === currentUser) continue;
+
+        switch (type) {
+          case "join_call":
+            console.log(`Received join_call from ${sender}`);
+            // Someone joined, we should initiate a connection to them
+            createPeerConnection(sender, true);
+            break;
+
+          case "leave_call":
+            console.log(`Received leave_call from ${sender}`);
+            if (peerConnections.current[sender]) {
+              peerConnections.current[sender].close();
+              delete peerConnections.current[sender];
+              setRemoteStreams(prev => {
+                const next = { ...prev };
+                delete next[sender];
+                return next;
+              });
             }
-          }));
-        }
-        await pcOffer.setLocalDescription(answer);
-        break;
+            break;
 
-      case "webrtc_answer":
-        if (target !== currentUser) return;
-        const pcAnswer = peerConnections.current[sender];
-        if (pcAnswer) {
-          await pcAnswer.setRemoteDescription(new RTCSessionDescription(data.answer));
-        }
-        break;
+          case "webrtc_offer":
+            if (target !== currentUser) return;
+            if (!data.offer) return;
+            console.log(`Received webrtc_offer from ${sender}`);
+            const pcOffer = createPeerConnection(sender, false);
+            await pcOffer.setRemoteDescription(new RTCSessionDescription(data.offer));
+            
+            if (iceCandidatesQueue.current[sender]) {
+              for (const candidate of iceCandidatesQueue.current[sender]) {
+                try {
+                  await pcOffer.addIceCandidate(new RTCIceCandidate(candidate));
+                } catch {
+                  // Ignore stale candidates; another candidate may still connect.
+                }
+              }
+              iceCandidatesQueue.current[sender] = [];
+            }
 
-      case "webrtc_ice_candidate":
-        if (target !== currentUser) return;
-        const pcIce = peerConnections.current[sender];
-        if (pcIce) {
-          try {
-            await pcIce.addIceCandidate(new RTCIceCandidate(data.candidate));
-          } catch (e) {
-            console.error("Error adding ice candidate", e);
-          }
+            const answer = await pcOffer.createAnswer();
+            
+            if (socketRef.current?.readyState === WebSocket.OPEN) {
+              socketRef.current.send(JSON.stringify({
+                type: "webrtc_answer",
+                data: {
+                  target_username: sender,
+                  answer: answer
+                }
+              }));
+            }
+            await pcOffer.setLocalDescription(answer);
+            break;
+
+          case "webrtc_answer":
+            if (target !== currentUser) return;
+            if (!data.answer) return;
+            console.log(`Received webrtc_answer from ${sender}`);
+            const pcAnswer = peerConnections.current[sender];
+            if (pcAnswer) {
+              await pcAnswer.setRemoteDescription(new RTCSessionDescription(data.answer));
+              
+              if (iceCandidatesQueue.current[sender]) {
+                for (const candidate of iceCandidatesQueue.current[sender]) {
+                  try {
+                    await pcAnswer.addIceCandidate(new RTCIceCandidate(candidate));
+                  } catch {
+                    // Ignore stale candidates; another candidate may still connect.
+                  }
+                }
+                iceCandidatesQueue.current[sender] = [];
+              }
+            }
+            break;
+
+          case "webrtc_ice_candidate":
+            if (target !== currentUser) return;
+            if (!data.candidate) return;
+            const pcIce = peerConnections.current[sender];
+            if (pcIce && pcIce.remoteDescription) {
+              try {
+                await pcIce.addIceCandidate(new RTCIceCandidate(data.candidate));
+              } catch (e) {
+                console.error("Error adding ice candidate", e);
+              }
+            } else {
+              if (!iceCandidatesQueue.current[sender]) {
+                iceCandidatesQueue.current[sender] = [];
+              }
+              iceCandidatesQueue.current[sender].push(data.candidate);
+            }
+            break;
         }
-        break;
+      }
+    } finally {
+      isProcessingRef.current = false;
+      if (messageQueue.current.length > 0) {
+        processMessageQueue();
+      }
     }
   }, [currentUser, createPeerConnection, socketRef]);
+
+  const handleSignalingData = useCallback((msg: WebRTCSignalMessage) => {
+    if (!inCallRef.current) return;
+    messageQueue.current.push(msg);
+    processMessageQueue();
+  }, [processMessageQueue]);
 
   // Clean up on unmount
   useEffect(() => {

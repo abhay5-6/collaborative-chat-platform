@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Mic, MicOff, Video, VideoOff, PhoneOff } from "lucide-react";
+import { Mic, Video, PhoneOff } from "lucide-react";
 
 interface VideoPlayerProps {
   stream: MediaStream;

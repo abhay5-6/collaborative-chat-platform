@@ -160,7 +160,7 @@ def load_settings() -> Settings:
 
         websocket_message_rate_limit=_get_int_env(
             "WEBSOCKET_MESSAGE_RATE_LIMIT",
-            15
+            200
         ),
 
         websocket_rate_limit_window_seconds=_get_int_env(
@@ -170,7 +170,7 @@ def load_settings() -> Settings:
 
         websocket_max_message_length=_get_int_env(
             "WEBSOCKET_MAX_MESSAGE_LENGTH",
-            5000
+            50000
         ),
 
         login_rate_limit=os.getenv(

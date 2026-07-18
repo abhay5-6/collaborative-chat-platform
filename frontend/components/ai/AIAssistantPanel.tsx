@@ -2,7 +2,6 @@
 
 import {
   useState,
-  useEffect
 } from "react";
 
 import {
@@ -16,11 +15,8 @@ import {
 import {
   searchRoom,
   queryRoom,
-  getRoomSummary,
   SearchResult
 } from "@/lib/api/ai";
-import { askRoomAI } from "@/lib/api/ai";
-import { toast } from "sonner";
 import StaleMemoryAlerts from "./StaleMemoryAlerts";
 
 interface AIAssistantPanelProps {

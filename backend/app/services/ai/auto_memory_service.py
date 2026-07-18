@@ -25,7 +25,10 @@ from app.services.ai.memory_graph_service import (
     build_memory_relationships
 )
 
+from app.models.room_memory import RoomMemory
+from app.models.memory_edge import MemoryEdge
 from app.models.room_task import RoomTask
+from app.websocket.manager import manager
 
 from app.core.config import (
     MEMORY_MAX_CONTENT_LENGTH,
@@ -212,6 +215,22 @@ async def process_message_for_memory(
         db.add(task)
         await db.flush()
         print(f"STEP 5.5 DONE: Task extracted (id={task.id})")
+        
+        # Broadcast the new task to the room
+        await manager.broadcast(
+            room_id,
+            {
+                "type": "task_created",
+                "data": {
+                    "id": task.id,
+                    "description": task.description,
+                    "assignee_username": task.assignee_username,
+                    "status": task.status,
+                    "created_at": task.created_at.isoformat() if task.created_at else None
+                }
+            }
+        )
+
 
     # STEP 6 - Build graph relationships
 

@@ -1,9 +1,11 @@
+import type { AxiosProgressEvent } from "axios";
+
 import api from "./client";
 
 export async function uploadRoomFile(
   roomId: number,
   file: File,
-  onProgress?: (progressEvent: any) => void
+  onProgress?: (progressEvent: AxiosProgressEvent) => void
 ) {
   const token =
     sessionStorage.getItem("token") ||

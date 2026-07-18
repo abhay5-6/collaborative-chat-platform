@@ -1,9 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import {
+  ArrowRight,
+  Hash,
+  Lock,
+  MessageCircle,
+  Plus,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
+
 import { createRoom, deleteRoom, getRooms, joinRoom, leaveRoom } from "@/lib/api/rooms";
 import { isAuthenticated } from "@/lib/auth";
 
@@ -20,10 +32,12 @@ type Room = {
 function getErrorMessage(error: unknown, fallback: string) {
   if (axios.isAxiosError(error)) {
     const detail = error.response?.data?.detail;
+
     if (typeof detail === "string") {
       return detail;
     }
   }
+
   return fallback;
 }
 
@@ -35,12 +49,31 @@ export default function RoomsPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const filteredRooms = useMemo(() => {
+    const term = search.trim().toLowerCase();
+
+    if (!term) {
+      return rooms;
+    }
+
+    return rooms.filter((room) =>
+      [room.name, room.description || ""].some((value) =>
+        value.toLowerCase().includes(term)
+      )
+    );
+  }, [rooms, search]);
+
+  const joinedRooms = rooms.filter((room) => room.is_member).length;
+  const privateRooms = rooms.filter((room) => room.is_private).length;
 
   useEffect(() => {
     if (!isAuthenticated()) {
       router.push("/login");
       return;
     }
+
     loadRooms();
   }, [router]);
 
@@ -57,19 +90,21 @@ export default function RoomsPage() {
   }
 
   async function handleCreateRoom() {
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      return;
+    }
 
     try {
       setCreating(true);
       await createRoom(name, description, isPrivate);
-      toast.success("Room created");
+      toast.success("Workspace created");
       setName("");
       setDescription("");
       setIsPrivate(false);
       await loadRooms();
     } catch (error) {
       console.error(error);
-      toast.error("Failed to create room");
+      toast.error("Failed to create workspace");
     } finally {
       setCreating(false);
     }
@@ -78,182 +113,246 @@ export default function RoomsPage() {
   async function handleJoinRoom(roomId: number) {
     try {
       const response = await joinRoom(roomId);
+
       if (response.message === "Join request sent") {
         toast.success("Access request sent");
         await loadRooms();
         return;
       }
+
       if (response.message === "Joined room successfully") {
-        toast.success("Joined room");
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        toast.success("Joined workspace");
         await loadRooms();
         router.push(`/rooms/${roomId}`);
-        return;
       }
     } catch (error) {
       console.error(error);
-      toast.error(getErrorMessage(error, "Failed to join room"));
+      toast.error(getErrorMessage(error, "Failed to join workspace"));
     }
   }
 
   async function handleLeaveRoom(roomId: number) {
     try {
       await leaveRoom(roomId);
-      toast.success("Left room");
+      toast.success("Left workspace");
       await loadRooms();
     } catch (error) {
       console.error(error);
-      toast.error("Failed to leave room");
+      toast.error("Failed to leave workspace");
     }
   }
 
   async function handleDeleteRoom(roomId: number) {
     try {
       await deleteRoom(roomId);
-      toast.success("Room deleted");
+      toast.success("Workspace deleted");
       await loadRooms();
     } catch (error) {
       console.error(error);
-      toast.error("Failed to delete room");
+      toast.error("Failed to delete workspace");
     }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
-        Loading workspace...
+      <div className="min-h-[calc(100vh-73px)] flex items-center justify-center text-muted-foreground">
+        Loading workspaces...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-6 md:py-12">
-      <div className="max-w-4xl mx-auto space-y-10">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight">Rooms</h1>
-          <p className="text-muted-foreground mt-2">Join or create a workspace to collaborate.</p>
-        </div>
-
-        {/* CREATE ROOM */}
-        <div className="border border-border rounded-3xl p-6 md:p-8 bg-card text-card-foreground shadow-sm">
-          <h2 className="text-xl font-semibold mb-4">Create New Room</h2>
-          <div className="flex flex-col gap-4">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Room name"
-              className="bg-background border border-border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-            />
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Description"
-              className="bg-background border border-border rounded-xl px-4 py-3 outline-none min-h-[100px] focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none"
-            />
-            <div className="flex items-center justify-between border border-border rounded-xl p-4 bg-background">
-              <div>
-                <div className="font-semibold">Private Room</div>
-                <div className="text-muted-foreground text-sm">Require approval to join</div>
+    <main className="min-h-[calc(100vh-73px)] bg-background text-foreground">
+      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 md:px-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+          <section className="rounded-lg border border-border bg-muted/30 p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
+                <Plus size={18} />
               </div>
-              <button
-                onClick={() => setIsPrivate(!isPrivate)}
-                className={`w-14 h-8 rounded-full transition relative ${
-                  isPrivate ? "bg-primary" : "bg-muted border border-border"
-                }`}
-              >
-                <div
-                  className={`absolute top-1 w-6 h-6 rounded-full bg-background shadow transition-all ${
-                    isPrivate ? "left-7" : "left-1"
-                  }`}
+              <div>
+                <h1 className="font-semibold">New workspace</h1>
+                <p className="text-xs text-muted-foreground">
+                  Create a shared place for channels, chat, tasks, and memory.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Workspace name"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+              <textarea
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                placeholder="What should people use this for?"
+                className="min-h-24 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+
+              <label className="flex items-center justify-between rounded-lg border border-border bg-background p-3">
+                <span>
+                  <span className="block text-sm font-medium">Private</span>
+                  <span className="block text-xs text-muted-foreground">
+                    Require approval before joining.
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={isPrivate}
+                  onChange={(event) => setIsPrivate(event.target.checked)}
+                  className="h-4 w-4 accent-foreground"
                 />
+              </label>
+
+              <button
+                onClick={handleCreateRoom}
+                disabled={creating || !name.trim()}
+                className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
+              >
+                {creating ? "Creating..." : "Create workspace"}
               </button>
             </div>
-            <button
-              onClick={handleCreateRoom}
-              disabled={creating || !name.trim()}
-              className="bg-primary text-primary-foreground font-semibold py-3 rounded-xl hover:opacity-90 transition disabled:opacity-50 mt-2"
-            >
-              {creating ? "Creating..." : "Create Room"}
-            </button>
-          </div>
-        </div>
+          </section>
 
-        {/* ROOM LIST */}
-        <div className="grid md:grid-cols-2 gap-6">
-          {rooms.map((room) => (
-            <div
-              key={room.id}
-              className="border border-border rounded-3xl p-6 bg-card text-card-foreground shadow-sm flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <h3 className="text-xl font-bold truncate pr-2">{room.name}</h3>
-                  <div
-                    className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold ${
-                      room.is_private
-                        ? "bg-destructive/10 text-destructive border border-destructive/20"
-                        : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
-                    }`}
-                  >
-                    {room.is_private ? "Private" : "Public"}
+          <section className="grid grid-cols-3 gap-2">
+            <div className="rounded-lg border border-border bg-card p-3">
+              <div className="text-xl font-semibold">{rooms.length}</div>
+              <div className="text-xs text-muted-foreground">Total</div>
+            </div>
+            <div className="rounded-lg border border-border bg-card p-3">
+              <div className="text-xl font-semibold">{joinedRooms}</div>
+              <div className="text-xs text-muted-foreground">Joined</div>
+            </div>
+            <div className="rounded-lg border border-border bg-card p-3">
+              <div className="text-xl font-semibold">{privateRooms}</div>
+              <div className="text-xs text-muted-foreground">Private</div>
+            </div>
+          </section>
+        </aside>
+
+        <section className="min-w-0 space-y-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight">Workspaces</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Pick a room, then work inside channels with chat, AI memory,
+                files, calls, and task boards.
+              </p>
+            </div>
+
+            <div className="flex w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm md:w-72">
+              <Search size={16} className="text-muted-foreground" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search rooms"
+                className="min-w-0 flex-1 bg-transparent outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-3">
+            {filteredRooms.map((room) => (
+              <article
+                key={room.id}
+                className="rounded-lg border border-border bg-card p-4 transition hover:border-foreground/30"
+              >
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center">
+                        {room.is_private ? <Lock size={16} /> : <Hash size={16} />}
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="truncate font-semibold">{room.name}</h3>
+                        <p className="line-clamp-1 text-sm text-muted-foreground">
+                          {room.description || "No description provided yet."}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                      <span className="rounded-md bg-muted px-2 py-1 text-muted-foreground">
+                        {room.is_private ? "Private" : "Public"}
+                      </span>
+                      {room.is_member && (
+                        <span className="rounded-md bg-emerald-500/10 px-2 py-1 text-emerald-600">
+                          Joined
+                        </span>
+                      )}
+                      {room.is_owner && (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-muted-foreground">
+                          <ShieldCheck size={12} />
+                          Owner
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-muted-foreground">
+                        <MessageCircle size={12} />
+                        Chat
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-muted-foreground">
+                        <Sparkles size={12} />
+                        Memory
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-muted-foreground">
+                        <Users size={12} />
+                        Team
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    {room.is_member ? (
+                      <>
+                        <button
+                          onClick={() => router.push(`/rooms/${room.id}`)}
+                          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+                        >
+                          Open
+                          <ArrowRight size={16} />
+                        </button>
+                        {!room.is_owner && (
+                          <button
+                            onClick={() => handleLeaveRoom(room.id)}
+                            className="rounded-lg border border-border px-4 py-2 text-sm font-semibold transition hover:bg-muted"
+                          >
+                            Leave
+                          </button>
+                        )}
+                        {room.is_owner && (
+                          <button
+                            onClick={() => handleDeleteRoom(room.id)}
+                            className="rounded-lg bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-500 transition hover:bg-red-500/20"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </>
+                    ) : room.has_pending_request ? (
+                      <button
+                        disabled
+                        className="rounded-lg bg-muted px-4 py-2 text-sm font-semibold text-muted-foreground"
+                      >
+                        Request pending
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleJoinRoom(room.id)}
+                        className="rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground transition hover:bg-secondary/80"
+                      >
+                        {room.is_private ? "Request access" : "Join"}
+                      </button>
+                    )}
                   </div>
                 </div>
-                <p className="text-muted-foreground text-sm line-clamp-2">
-                  {room.description || "No description provided."}
-                </p>
-                {room.is_owner && (
-                  <div className="mt-4 inline-block bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-semibold border border-primary/20">
-                    Owner
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-wrap gap-2 mt-8">
-                {room.is_member ? (
-                  <>
-                    <button
-                      onClick={() => router.push(`/rooms/${room.id}`)}
-                      className="bg-primary text-primary-foreground px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-90 transition"
-                    >
-                      Enter Room
-                    </button>
-                    {!room.is_owner && (
-                      <button
-                        onClick={() => handleLeaveRoom(room.id)}
-                        className="bg-muted text-muted-foreground hover:bg-muted/80 px-4 py-2 rounded-xl text-sm font-semibold transition"
-                      >
-                        Leave
-                      </button>
-                    )}
-                    {room.is_owner && (
-                      <button
-                        onClick={() => handleDeleteRoom(room.id)}
-                        className="bg-destructive/10 text-destructive hover:bg-destructive/20 px-4 py-2 rounded-xl text-sm font-semibold transition"
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </>
-                ) : room.has_pending_request ? (
-                  <button
-                    disabled
-                    className="bg-muted text-muted-foreground px-4 py-2 rounded-xl text-sm font-semibold cursor-not-allowed w-full"
-                  >
-                    Request Pending
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleJoinRoom(room.id)}
-                    className="bg-secondary text-secondary-foreground hover:bg-secondary/80 px-4 py-2 rounded-xl text-sm font-semibold transition w-full"
-                  >
-                    {room.is_private ? "Request Access" : "Join Room"}
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+              </article>
+            ))}
+          </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }

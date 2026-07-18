@@ -249,6 +249,13 @@ async def websocket_chat(
                     "webrtc_ice_candidate"
                 ]:
                     inner_data = data.get("data", {})
+                    
+                    logger.info("WebRTC Signaling Received", extra={
+                        "event_type": event_type,
+                        "sender": user.username,
+                        "room_id": room_id
+                    })
+                    
                     # Broadcast the signaling message to everyone else in the room
                     await manager.broadcast(
                         room_id,

@@ -7,32 +7,47 @@ interface StaleMemoryAlertsProps {
   roomId: number;
 }
 
+type StaleMemory = {
+  id: number;
+  content: string;
+  created_at: string;
+};
+
 export default function StaleMemoryAlerts({ roomId }: StaleMemoryAlertsProps) {
-  const [staleMemories, setStaleMemories] = useState<any[]>([]);
+  const [staleMemories, setStaleMemories] = useState<StaleMemory[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadStaleMemories();
-  }, [roomId]);
+    let isMounted = true;
 
-  async function loadStaleMemories() {
-    try {
-      setLoading(true);
-      const data = await getStaleMemories(roomId, 30); // 30 days old
-      setStaleMemories(data);
-    } catch (error) {
-      console.error("Failed to load stale memories", error);
-    } finally {
-      setLoading(false);
+    async function loadStaleMemories() {
+      try {
+        const data = await getStaleMemories(roomId, 30); // 30 days old
+        if (isMounted) {
+          setStaleMemories(data);
+        }
+      } catch (error) {
+        console.error("Failed to load stale memories", error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
     }
-  }
+
+    void loadStaleMemories();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [roomId]);
 
   async function handleReinforce(memoryId: number) {
     try {
       await reinforceMemory(roomId, memoryId);
       setStaleMemories(prev => prev.filter(m => m.id !== memoryId));
       toast.success("Memory reinforced!");
-    } catch (error) {
+    } catch {
       toast.error("Failed to reinforce memory");
     }
   }
@@ -42,7 +57,7 @@ export default function StaleMemoryAlerts({ roomId }: StaleMemoryAlertsProps) {
       await pruneMemory(roomId, memoryId);
       setStaleMemories(prev => prev.filter(m => m.id !== memoryId));
       toast.success("Memory pruned!");
-    } catch (error) {
+    } catch {
       toast.error("Failed to prune memory");
     }
   }
@@ -63,14 +78,14 @@ export default function StaleMemoryAlerts({ roomId }: StaleMemoryAlertsProps) {
       </div>
       
       <p className="text-xs text-amber-200/70 mb-4">
-        The following memories haven't been referenced in over 30 days. Review them to ensure the AI's context remains accurate.
+        The following memories haven&apos;t been referenced in over 30 days. Review them to ensure the AI&apos;s context remains accurate.
       </p>
 
       <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
         {staleMemories.map(memory => (
           <div key={memory.id} className="bg-background/20 p-3 rounded-lg border border-white/5">
             <p className="text-sm text-foreground mb-3 line-clamp-3">
-              "{memory.content}"
+              &quot;{memory.content}&quot;
             </p>
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground font-mono">

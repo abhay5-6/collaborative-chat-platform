@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.models.room_task import RoomTask
 from app.core.dependencies import get_current_user
+from app.websocket.manager import manager
 
 router = APIRouter(prefix="/rooms", tags=["Tasks"])
 
@@ -26,7 +27,7 @@ async def get_room_tasks(
             "id": t.id,
             "description": t.description,
             "assignee_username": t.assignee_username,
-            "completed": t.completed,
+            "status": t.status,
             "created_at": t.created_at,
             "completed_at": t.completed_at
         }
@@ -48,20 +49,35 @@ async def update_room_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
         
-    if "completed" in payload:
-        task.completed = payload["completed"]
-        if task.completed:
+    if "status" in payload:
+        task.status = payload["status"]
+        if task.status == "done":
             task.completed_at = datetime.utcnow()
         else:
             task.completed_at = None
             
     await db.commit()
     
-    return {
+    # Broadcast task update
+    response_data = {
         "id": task.id,
         "description": task.description,
         "assignee_username": task.assignee_username,
-        "completed": task.completed,
+        "status": task.status,
         "created_at": task.created_at,
         "completed_at": task.completed_at
     }
+    
+    await manager.broadcast(
+        room_id,
+        {
+            "type": "task_updated",
+            "data": {
+                **response_data,
+                "created_at": response_data["created_at"].isoformat() if response_data["created_at"] else None,
+                "completed_at": response_data["completed_at"].isoformat() if response_data["completed_at"] else None
+            }
+        }
+    )
+    
+    return response_data

@@ -30,8 +30,8 @@ class RoomTask(Base):
     # The username of the person who is supposed to do it
     assignee_username: Mapped[str | None] = mapped_column(String(255), nullable=True)
     
-    # Has it been completed?
-    completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Kanban Status: 'todo', 'in_progress', 'done'
+    status: Mapped[str] = mapped_column(String(50), default="todo")
     
     # When the AI detected it
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

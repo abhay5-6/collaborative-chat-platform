@@ -1,18 +1,36 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { login } from "@/lib/api/auth";
-import { useAuth } from "@/components/AuthProvider";
-import { toast } from "sonner";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { LockKeyhole, Mail, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
+
+import { useAuth } from "@/components/AuthProvider";
+import { login } from "@/lib/api/auth";
+
+function GoogleMark() {
+  return (
+    <span className="text-sm font-bold" aria-hidden="true">
+      G
+    </span>
+  );
+}
+
+function GitHubMark() {
+  return (
+    <span className="text-xs font-bold" aria-hidden="true">
+      GH
+    </span>
+  );
+}
 
 export default function LoginPage() {
   const router = useRouter();
+  const auth = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const auth = useAuth();
 
   useEffect(() => {
     if (auth.isAuthenticated) {
@@ -20,13 +38,14 @@ export default function LoginPage() {
     }
   }, [auth.isAuthenticated, router]);
 
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleLogin(event: React.FormEvent) {
+    event.preventDefault();
     setLoading(true);
+
     try {
       const data = await login(email, password);
       auth.login(data.access_token);
-      toast.success("Login successful");
+      toast.success("Welcome back");
       router.push("/rooms");
     } catch (error) {
       console.error(error);
@@ -36,52 +55,116 @@ export default function LoginPage() {
     }
   }
 
+  function handleProvider(provider: "Google" | "GitHub") {
+    toast.info(`${provider} sign-in is planned for the OAuth backend.`);
+  }
+
   return (
-    <main className="min-h-screen flex items-center justify-center p-6">
-      <form
-        onSubmit={handleLogin}
-        className="w-full max-w-md border border-border rounded-3xl p-8 flex flex-col gap-6 bg-card text-card-foreground shadow-lg"
-      >
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Welcome back</h1>
-          <p className="text-muted-foreground text-sm">Sign in to your account</p>
-        </div>
+    <main className="min-h-[calc(100vh-73px)] bg-background text-foreground">
+      <div className="mx-auto grid min-h-[calc(100vh-73px)] max-w-6xl items-center gap-8 px-4 py-8 md:px-6 lg:grid-cols-[1fr_440px]">
+        <section className="hidden lg:block">
+          <div className="max-w-xl">
+            <div className="mb-5 inline-flex items-center gap-2 rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
+              <ShieldCheck size={16} />
+              Identity-backed collaboration
+            </div>
+            <h1 className="text-5xl font-bold tracking-tight">
+              Rework remembers the work, not just the messages.
+            </h1>
+            <p className="mt-5 text-lg text-muted-foreground">
+              Sign in to return to shared rooms, channel chat, task boards,
+              calls, files, and the room memory assistant.
+            </p>
+          </div>
+        </section>
 
-        <div className="space-y-4">
-          <input
-            type="email"
-            placeholder="Email address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full bg-background border border-border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-            required
-          />
-
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full bg-background border border-border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-            required
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold hover:opacity-90 transition disabled:opacity-50"
+        <form
+          onSubmit={handleLogin}
+          className="rounded-lg border border-border bg-card p-6 shadow-sm"
         >
-          {loading ? "Signing in..." : "Sign in"}
-        </button>
+          <div>
+            <h2 className="text-2xl font-semibold tracking-tight">
+              Welcome back
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Use your Rework password today. Google and GitHub sign-in are
+              staged for the real OAuth connection.
+            </p>
+          </div>
 
-        <p className="text-center text-sm text-muted-foreground mt-4">
-          Don't have an account?{" "}
-          <Link href="/register" className="text-foreground font-semibold hover:underline">
-            Register here
-          </Link>
-        </p>
-      </form>
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => handleProvider("Google")}
+              className="flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-medium transition hover:bg-muted"
+            >
+              <GoogleMark />
+              Google
+            </button>
+            <button
+              type="button"
+              onClick={() => handleProvider("GitHub")}
+              className="flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-medium transition hover:bg-muted"
+            >
+              <GitHubMark />
+              GitHub
+            </button>
+          </div>
+
+          <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
+            Email password
+            <span className="h-px flex-1 bg-border" />
+          </div>
+
+          <div className="space-y-3">
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium">Email</span>
+              <span className="flex items-center gap-2 rounded-lg border border-border bg-background px-3">
+                <Mail size={16} className="text-muted-foreground" />
+                <input
+                  type="email"
+                  placeholder="you@company.com"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="min-w-0 flex-1 bg-transparent py-2.5 text-sm outline-none"
+                  required
+                />
+              </span>
+            </label>
+
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium">Password</span>
+              <span className="flex items-center gap-2 rounded-lg border border-border bg-background px-3">
+                <LockKeyhole size={16} className="text-muted-foreground" />
+                <input
+                  type="password"
+                  placeholder="Your password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="min-w-0 flex-1 bg-transparent py-2.5 text-sm outline-none"
+                  required
+                />
+              </span>
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="mt-5 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
+          >
+            {loading ? "Signing in..." : "Sign in"}
+          </button>
+
+          <p className="mt-5 text-center text-sm text-muted-foreground">
+            New to Rework?{" "}
+            <Link href="/register" className="font-semibold text-foreground hover:underline">
+              Create an account
+            </Link>
+          </p>
+        </form>
+      </div>
     </main>
   );
 }

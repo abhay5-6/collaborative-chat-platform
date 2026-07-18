@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
+import type { ForceGraphMethods, NodeObject } from "react-force-graph-2d";
 import { Loader2 } from "lucide-react";
 
 // Dynamically import react-force-graph-2d to avoid SSR issues
@@ -15,10 +16,42 @@ const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), {
   ),
 });
 
+type GraphApiNode = {
+  id: string;
+  type: string;
+  data: {
+    label: string;
+    domain?: string;
+    importance?: number;
+  };
+};
+
+type GraphApiEdge = {
+  source: string;
+  target: string;
+  label?: string;
+};
+
+type GraphNode = {
+  id: string;
+  name: string;
+  domain?: string;
+  val: number;
+  type: string;
+  x?: number;
+  y?: number;
+};
+
+type GraphLink = {
+  source: string;
+  target: string;
+  label?: string;
+};
+
 export default function CognitiveGraph({ roomId }: { roomId: number }) {
-  const [graphData, setGraphData] = useState({ nodes: [], links: [] });
+  const [graphData, setGraphData] = useState<{ nodes: GraphNode[]; links: GraphLink[] }>({ nodes: [], links: [] });
   const [loading, setLoading] = useState(true);
-  const fgRef = useRef<any>();
+  const fgRef = useRef<ForceGraphMethods | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
 
@@ -36,18 +69,18 @@ export default function CognitiveGraph({ roomId }: { roomId: number }) {
           throw new Error(`Failed to load graph: ${res.status}`);
         }
         
-        const data = await res.json();
+        const data = await res.json() as { nodes: GraphApiNode[]; edges: GraphApiEdge[] };
 
         // Format data for react-force-graph
-        const nodes = data.nodes.map((node: any) => ({
+        const nodes = data.nodes.map((node) => ({
           id: node.id,
           name: node.data.label,
           domain: node.data.domain,
-          val: node.data.importance * 2, // Scale up for visual weight
+          val: (node.data.importance ?? 1) * 2, // Scale up for visual weight
           type: node.type
         }));
 
-        const links = data.edges.map((edge: any) => ({
+        const links = data.edges.map((edge) => ({
           source: edge.source,
           target: edge.target,
           label: edge.label,
@@ -83,23 +116,24 @@ export default function CognitiveGraph({ roomId }: { roomId: number }) {
   }, []);
 
   // Custom node painting
-  const paintNode = useCallback((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
-    const label = node.name;
+  const paintNode = useCallback((node: NodeObject, ctx: CanvasRenderingContext2D, globalScale: number) => {
+    const graphNode = node as NodeObject & Partial<GraphNode>;
+    const label = graphNode.name ?? String(graphNode.id ?? "");
     const fontSize = 12 / globalScale;
     ctx.font = `${fontSize}px Inter, sans-serif`;
     
     // Determine color based on domain
     let color = "#525252"; // default neutral
-    const domain = node.domain?.toLowerCase() || "";
+    const domain = graphNode.domain?.toLowerCase() || "";
     if (domain.includes("architecture")) color = "#06b6d4"; // cyan
     else if (domain.includes("backend")) color = "#a855f7"; // purple
     else if (domain.includes("frontend")) color = "#f97316"; // orange
     else if (domain.includes("database")) color = "#10b981"; // emerald
 
     // Draw node circle
-    const r = Math.sqrt(Math.max(0, node.val || 1)) * 4;
+    const r = Math.sqrt(Math.max(0, graphNode.val || 1)) * 4;
     ctx.beginPath();
-    ctx.arc(node.x, node.y, r, 0, 2 * Math.PI, false);
+    ctx.arc(graphNode.x ?? 0, graphNode.y ?? 0, r, 0, 2 * Math.PI, false);
     ctx.fillStyle = color;
     ctx.fill();
     
@@ -114,12 +148,12 @@ export default function CognitiveGraph({ roomId }: { roomId: number }) {
     const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2); 
     
     ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
-    ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y + r + 2, bckgDimensions[0], bckgDimensions[1]);
+    ctx.fillRect((graphNode.x ?? 0) - bckgDimensions[0] / 2, (graphNode.y ?? 0) + r + 2, bckgDimensions[0], bckgDimensions[1]);
     
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = "#ffffff";
-    ctx.fillText(label, node.x, node.y + r + 2 + bckgDimensions[1] / 2);
+    ctx.fillText(label, graphNode.x ?? 0, (graphNode.y ?? 0) + r + 2 + bckgDimensions[1] / 2);
   }, []);
 
   if (loading) {
