@@ -50,6 +50,7 @@ class Settings:
     algorithm: str
     access_token_expire_minutes: int
     frontend_url: str
+    backend_url: str
     backend_cors_origins: list[str]
     websocket_allowed_origins: list[str]
 
@@ -77,6 +78,12 @@ class Settings:
     smtp_port: int
     smtp_user: str | None
     smtp_password: str | None
+
+    google_oauth_client_id: str | None
+    google_oauth_client_secret: str | None
+    github_oauth_client_id: str | None
+    github_oauth_client_secret: str | None
+    oauth_state_expire_minutes: int
 
 
 def load_settings() -> Settings:
@@ -139,6 +146,11 @@ def load_settings() -> Settings:
         ),
 
         frontend_url=frontend_url,
+
+        backend_url=os.getenv(
+            "BACKEND_URL",
+            "http://localhost:8000"
+        ).rstrip("/"),
 
         backend_cors_origins=cors_origins,
 
@@ -238,6 +250,27 @@ def load_settings() -> Settings:
 
         smtp_password=os.getenv(
             "SMTP_PASSWORD"
+        ),
+
+        google_oauth_client_id=os.getenv(
+            "GOOGLE_OAUTH_CLIENT_ID"
+        ),
+
+        google_oauth_client_secret=os.getenv(
+            "GOOGLE_OAUTH_CLIENT_SECRET"
+        ),
+
+        github_oauth_client_id=os.getenv(
+            "GITHUB_OAUTH_CLIENT_ID"
+        ),
+
+        github_oauth_client_secret=os.getenv(
+            "GITHUB_OAUTH_CLIENT_SECRET"
+        ),
+
+        oauth_state_expire_minutes=_get_int_env(
+            "OAUTH_STATE_EXPIRE_MINUTES",
+            10
         )
     )
 

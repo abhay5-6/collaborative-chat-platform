@@ -1,12 +1,16 @@
 "use client";
 
 import {
+  useEffect,
   useState,
 } from "react";
 
 import {
   ChevronRight,
   ChevronLeft,
+  Check,
+  Clock3,
+  Trash2,
   Search,
   Sparkles,
   Loader
@@ -17,6 +21,12 @@ import {
   queryRoom,
   SearchResult
 } from "@/lib/api/ai";
+import {
+  getRoomMemories,
+  pruneMemory,
+  reinforceMemory,
+} from "@/lib/api/memories";
+import type { RoomMemory } from "@/lib/api/memories";
 import StaleMemoryAlerts from "./StaleMemoryAlerts";
 
 interface AIAssistantPanelProps {
@@ -53,6 +63,72 @@ export default function AIAssistantPanel({
 
   const [showPrebuilt, setShowPrebuilt] =
     useState(false);
+
+  const [memories, setMemories] = useState<RoomMemory[]>([]);
+
+  const [memoryLoading, setMemoryLoading] = useState(false);
+
+  const [memoryActionId, setMemoryActionId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    let mounted = true;
+
+    async function loadMemories() {
+      try {
+        setMemoryLoading(true);
+        const data = await getRoomMemories(roomId);
+        if (mounted) {
+          setMemories(data);
+        }
+      } catch (error) {
+        console.error("Failed to load room memories", error);
+      } finally {
+        if (mounted) {
+          setMemoryLoading(false);
+        }
+      }
+    }
+
+    void loadMemories();
+
+    return () => {
+      mounted = false;
+    };
+  }, [isOpen, roomId]);
+
+  async function handleReinforceMemory(memoryId: number) {
+    try {
+      setMemoryActionId(memoryId);
+      await reinforceMemory(roomId, memoryId);
+      setMemories((current) =>
+        current.map((memory) =>
+          memory.id === memoryId
+            ? { ...memory, last_reinforced_at: new Date().toISOString() }
+            : memory
+        )
+      );
+    } catch (error) {
+      console.error("Failed to reinforce room memory", error);
+    } finally {
+      setMemoryActionId(null);
+    }
+  }
+
+  async function handleForgetMemory(memoryId: number) {
+    try {
+      setMemoryActionId(memoryId);
+      await pruneMemory(roomId, memoryId);
+      setMemories((current) => current.filter((memory) => memory.id !== memoryId));
+    } catch (error) {
+      console.error("Failed to forget room memory", error);
+    } finally {
+      setMemoryActionId(null);
+    }
+  }
 
   async function handleSearch() {
     if (!query.trim()) {
@@ -191,6 +267,85 @@ export default function AIAssistantPanel({
           p-6
           space-y-6
         ">
+          <section className="space-y-3 border-b border-border pb-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">
+                  Room memory
+                </h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Review what Rework remembers and why it exists.
+                </p>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {memories.length} recent
+              </span>
+            </div>
+
+            {memoryLoading ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader size={13} className="animate-spin" />
+                Loading room memory
+              </div>
+            ) : memories.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
+                Save a useful message to start the room memory.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {memories.slice(0, 5).map((memory) => (
+                  <div
+                    key={memory.id}
+                    className="rounded-lg border border-border bg-muted/40 p-3"
+                  >
+                    <p className="line-clamp-3 text-sm leading-relaxed text-foreground">
+                      {memory.content}
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+                      <span>{memory.memory_type}</span>
+                      <span aria-hidden="true">•</span>
+                      <span>
+                        {memory.source_type === "message" && memory.source_id
+                          ? `Message #${memory.source_id}`
+                          : "Manual note"}
+                      </span>
+                      <span aria-hidden="true">•</span>
+                      <span>
+                        By {memory.creator_username || `member #${memory.created_by}`}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <Clock3 size={12} />
+                        {Math.round(memory.confidence_score * 100)}% confidence
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleForgetMemory(memory.id)}
+                          disabled={memoryActionId === memory.id}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition hover:bg-background hover:text-red-500 disabled:opacity-50"
+                          title="Forget this memory"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleReinforceMemory(memory.id)}
+                          disabled={memoryActionId === memory.id}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition hover:bg-background hover:text-emerald-600 disabled:opacity-50"
+                          title="Reinforce this memory"
+                        >
+                          <Check size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
           {/* SEARCH */}
           <div className="space-y-3">
             <div className="

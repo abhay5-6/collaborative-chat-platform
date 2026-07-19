@@ -16,3 +16,4 @@ from app.models.join_request import (
     RoomJoinRequest
 )
 from app.models.room_task import RoomTask
+from app.models.user_identity import UserIdentity

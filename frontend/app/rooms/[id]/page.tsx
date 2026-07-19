@@ -7,6 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
 import {
   AtSign,
+  BookmarkPlus,
   Bot,
   CheckCircle2,
   File as FileIcon,
@@ -41,6 +42,7 @@ import {
 } from "@/lib/api/collaborators";
 import { uploadRoomFile } from "@/lib/api/files";
 import { getMessages } from "@/lib/api/messages";
+import { createRoomMemory } from "@/lib/api/memories";
 import {
   demoteMember,
   getRoom,
@@ -518,6 +520,27 @@ export default function RoomPage() {
     }
   }
 
+  async function handleSaveMemory(message: Message) {
+    const content = (message.content || message.message || "").trim();
+
+    if (!content || !message.id) {
+      return;
+    }
+
+    try {
+      await createRoomMemory(roomId, {
+        content,
+        source_type: "message",
+        source_id: message.id,
+        memory_type: "decision",
+        importance_score: 3,
+      });
+      toast.success("Saved to room memory");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Could not save this message"));
+    }
+  }
+
   if (loading || !room) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
@@ -791,7 +814,7 @@ export default function RoomPage() {
                     )}
 
                     <div
-                      className={`max-w-[82%] md:max-w-[68%] ${
+                      className={`group max-w-[82%] md:max-w-[68%] ${
                         mine ? "items-end" : "items-start"
                       } flex flex-col`}
                     >
@@ -848,6 +871,18 @@ export default function RoomPage() {
                           </div>
                         )}
                       </div>
+
+                      {!fromAI && (msg.content || msg.message) && (
+                        <button
+                          type="button"
+                          onClick={() => handleSaveMemory(msg)}
+                          className="mt-1 inline-flex items-center gap-1 self-start rounded-md px-2 py-1 text-xs text-muted-foreground opacity-0 transition hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+                          title="Save message to room memory"
+                        >
+                          <BookmarkPlus size={13} />
+                          Save to memory
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

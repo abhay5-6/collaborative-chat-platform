@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import (
 from app.models.room_memory import (
     RoomMemory
 )
+from app.models.user import User
 from sqlalchemy import select
 from datetime import datetime, timedelta
 
@@ -80,8 +81,52 @@ async def get_stale_memories(db: AsyncSession, room_id: int, days_old: int = 30)
     result = await db.execute(query)
     return result.scalars().all()
 
-async def reinforce_memory(db: AsyncSession, memory_id: int):
-    query = select(RoomMemory).where(RoomMemory.id == memory_id)
+
+async def get_room_memories(
+    db: AsyncSession,
+    room_id: int,
+    limit: int = 20
+):
+    query = (
+        select(RoomMemory, User.username)
+        .join(User, RoomMemory.created_by == User.id)
+        .where(RoomMemory.room_id == room_id)
+        .order_by(RoomMemory.created_at.desc())
+        .limit(limit)
+    )
+
+    result = await db.execute(query)
+
+    memories = []
+    for memory, creator_username in result.all():
+        memories.append({
+            "id": memory.id,
+            "room_id": memory.room_id,
+            "created_by": memory.created_by,
+            "content": memory.content,
+            "memory_type": memory.memory_type,
+            "source_type": memory.source_type,
+            "source_id": memory.source_id,
+            "domain": memory.domain,
+            "importance_score": memory.importance_score,
+            "confidence_score": memory.confidence_score,
+            "tags": memory.tags or [],
+            "created_at": memory.created_at,
+            "last_reinforced_at": memory.last_reinforced_at,
+            "creator_username": creator_username,
+        })
+
+    return memories
+
+async def reinforce_memory(
+    db: AsyncSession,
+    room_id: int,
+    memory_id: int
+):
+    query = select(RoomMemory).where(
+        RoomMemory.id == memory_id,
+        RoomMemory.room_id == room_id
+    )
     result = await db.execute(query)
     memory = result.scalars().first()
     if memory:
@@ -90,8 +135,15 @@ async def reinforce_memory(db: AsyncSession, memory_id: int):
         await db.commit()
     return memory
 
-async def delete_memory(db: AsyncSession, memory_id: int):
-    query = select(RoomMemory).where(RoomMemory.id == memory_id)
+async def delete_memory(
+    db: AsyncSession,
+    room_id: int,
+    memory_id: int
+):
+    query = select(RoomMemory).where(
+        RoomMemory.id == memory_id,
+        RoomMemory.room_id == room_id
+    )
     result = await db.execute(query)
     memory = result.scalars().first()
     if memory:

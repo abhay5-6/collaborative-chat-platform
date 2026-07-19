@@ -7,7 +7,12 @@ import { LockKeyhole, Mail, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/AuthProvider";
-import { login } from "@/lib/api/auth";
+import {
+  getAuthProviders,
+  getProviderAuthUrl,
+  login,
+  type AuthProviders,
+} from "@/lib/api/auth";
 
 function GoogleMark() {
   return (
@@ -31,12 +36,20 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [providers, setProviders] = useState<AuthProviders>({
+    google: false,
+    github: false,
+  });
 
   useEffect(() => {
     if (auth.isAuthenticated) {
       router.push("/rooms");
     }
   }, [auth.isAuthenticated, router]);
+
+  useEffect(() => {
+    getAuthProviders().then(setProviders).catch(() => undefined);
+  }, []);
 
   async function handleLogin(event: React.FormEvent) {
     event.preventDefault();
@@ -55,8 +68,13 @@ export default function LoginPage() {
     }
   }
 
-  function handleProvider(provider: "Google" | "GitHub") {
-    toast.info(`${provider} sign-in is planned for the OAuth backend.`);
+  function handleProvider(provider: "google" | "github") {
+    if (!providers[provider]) {
+      toast.info(`${provider === "google" ? "Google" : "GitHub"} sign-in is not configured yet.`);
+      return;
+    }
+
+    window.location.assign(getProviderAuthUrl(provider));
   }
 
   return (
@@ -95,7 +113,7 @@ export default function LoginPage() {
           <div className="mt-6 grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() => handleProvider("Google")}
+              onClick={() => handleProvider("google")}
               className="flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-medium transition hover:bg-muted"
             >
               <GoogleMark />
@@ -103,7 +121,7 @@ export default function LoginPage() {
             </button>
             <button
               type="button"
-              onClick={() => handleProvider("GitHub")}
+              onClick={() => handleProvider("github")}
               className="flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-medium transition hover:bg-muted"
             >
               <GitHubMark />

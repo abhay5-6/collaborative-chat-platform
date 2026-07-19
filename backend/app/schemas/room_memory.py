@@ -10,6 +10,12 @@ class RoomMemoryCreate(
 
     memory_type: str = "note"
 
+    source_type: str = "manual"
+
+    source_id: int | None = None
+
+    domain: str = "general"
+
     importance_score: int = 1
 
     tags: list[str] = []
@@ -28,6 +34,22 @@ class RoomMemoryResponse(
     content: str
 
     memory_type: str
+
+    source_type: str
+
+    source_id: int | None
+
+    domain: str
+
+    importance_score: int
+
+    confidence_score: float
+
+    tags: list[str]
+
+    last_reinforced_at: datetime
+
+    creator_username: str | None = None
 
     created_at: datetime
 

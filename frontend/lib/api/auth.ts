@@ -1,5 +1,21 @@
 import api from "./client";
 
+export type AuthProviders = {
+  google: boolean;
+  github: boolean;
+};
+
+export async function getAuthProviders(): Promise<AuthProviders> {
+  const response = await api.get("/auth/providers");
+  return response.data;
+}
+
+export function getProviderAuthUrl(provider: "google" | "github") {
+  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000")
+    .replace(/\/$/, "");
+  return `${baseUrl}/auth/${provider}/start`;
+}
+
 
 export async function register(
 
