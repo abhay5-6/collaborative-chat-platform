@@ -14,7 +14,7 @@ Progress is tracked by product deliverables, not by lines of code.
 | --- | --- | ---: | --- |
 | Workspace and room shell | Done | 100% | Discord-style rooms, channel navigation, members, files, calls, AI panel, and task board are connected. |
 | Chat foundation | In progress | 65% | Realtime messages, reconnect behavior, typing state, attachments, and grouped bubbles exist. Replies, reactions, search, and notifications remain. |
-| Memory foundation | In progress | 82% | AI retrieval, stale-memory review, deliberate message capture, provenance UI, reinforce/forget controls, and room access boundaries are connected. Correction, pause controls, and citations continue next. |
+| Memory foundation | In progress | 92% | AI retrieval, stale-memory review, deliberate message capture, provenance UI, correction, reinforce/forget controls, source links, and room access boundaries are connected. AI-answer citations and pause analytics continue next. |
 | Identity and account trust | In progress | 65% | Password auth plus provider discovery, signed OAuth state, verified-email linking, and callback handling are implemented. Provider console setup and production callback testing remain. |
 | Tasks and decisions | In progress | 45% | Kanban exists. Message-to-task, decision records, ownership, due dates, and activity history remain. |
 | Integrations | Planned | 0% | GitHub, calendar, document, and notification integrations are future milestones. |
@@ -36,7 +36,7 @@ Progress is tracked by product deliverables, not by lines of code.
 - [x] Enforce room access checks on every memory search, query, stale review, reinforce, and delete path.
 - [x] Show memory provenance: source message, creator, confidence, importance, and last reinforced date.
 - [x] Add explicit memory controls for remember, reinforce, and forget.
-- [ ] Add memory correction and a room-level pause for automatic capture.
+- [x] Add memory correction and a room-level pause for automatic capture.
 - [x] Add real Google and GitHub OAuth with signed state and verified provider identity.
 - [x] Link provider accounts to an existing Rework account without creating duplicates.
 - [ ] Configure provider credentials and test production callback URLs.
@@ -78,7 +78,7 @@ Progress is tracked by product deliverables, not by lines of code.
 - The frontend lint and production build pass.
 - This file is updated with the completed work and the next remaining risks.
 
-The current sprint is complete. The next sprint is memory correction/citations, message-to-task and decision capture, and production OAuth configuration.
+The current memory trust sprint is complete. The next sprint is message-to-task and decision capture, chat replies/reactions/search, and production OAuth configuration.
 
 ## Product Guardrails
 

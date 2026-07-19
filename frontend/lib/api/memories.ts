@@ -50,6 +50,18 @@ export async function createRoomMemory(
   return response.data;
 }
 
+export async function updateRoomMemory(
+  roomId: number,
+  memoryId: number,
+  updates: { content?: string; importance_score?: number; tags?: string[] }
+) {
+  const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+  const response = await api.patch(`/rooms/${roomId}/memories/${memoryId}`, updates, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+}
+
 export async function reinforceMemory(roomId: number, memoryId: number) {
   const token = sessionStorage.getItem("token") || localStorage.getItem("token");
   const response = await api.post(`/rooms/${roomId}/memories/${memoryId}/reinforce`, {}, {

@@ -16,6 +16,7 @@ from app.db.session import get_db
 from app.schemas.room_memory import (
     RoomMemoryCreate,
     RoomMemoryResponse,
+    RoomMemoryUpdate,
     SearchResult
 )
 
@@ -24,6 +25,7 @@ from app.services.ai.memory_service import (
     get_room_memories,
     get_stale_memories,
     reinforce_memory,
+    update_memory,
     delete_memory
 )
 
@@ -227,6 +229,40 @@ async def reinforce(
     if not memory:
         raise HTTPException(status_code=404, detail="Memory not found")
     return {"message": "Memory reinforced", "confidence_score": memory.confidence_score}
+
+
+@router.patch(
+    "/{room_id}/memories/{memory_id}",
+    response_model=RoomMemoryResponse
+)
+async def edit_memory(
+    room_id: int,
+    memory_id: int,
+    payload: RoomMemoryUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    await require_room_access(db, room_id, current_user)
+
+    content = payload.content.strip() if payload.content is not None else None
+    if content == "":
+        raise HTTPException(status_code=422, detail="Memory content cannot be empty")
+
+    embedding = await generate_embedding(content) if content else None
+    memory = await update_memory(
+        db,
+        room_id,
+        memory_id,
+        content=content,
+        embedding=embedding,
+        importance_score=payload.importance_score,
+        tags=payload.tags,
+    )
+    if not memory:
+        raise HTTPException(status_code=404, detail="Memory not found")
+
+    await db.commit()
+    return memory
 
 @router.delete("/{room_id}/memories/{memory_id}")
 async def delete_stale_memory(

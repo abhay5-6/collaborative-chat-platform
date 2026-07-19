@@ -513,7 +513,7 @@ export default function RoomPage() {
       const newValue = !aiEnabled;
       setAiEnabled(newValue);
       await toggleRoomAI(roomId, newValue);
-      toast.success(newValue ? "AI memory enabled" : "AI memory paused");
+       toast.success(newValue ? "Automatic memory enabled" : "Automatic memory paused");
     } catch (error) {
       setAiEnabled(previousValue);
       toast.error(getErrorMessage(error, "Failed to toggle AI setting"));
@@ -638,7 +638,7 @@ export default function RoomPage() {
             <div className="rounded-lg bg-background border border-border p-3">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Bot size={16} />
-                Memory aware
+                Automatic memory
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 {aiEnabled
@@ -701,7 +701,7 @@ export default function RoomPage() {
                       ? "bg-primary text-primary-foreground"
                       : "bg-background hover:bg-muted"
                   }`}
-                  title="AI memory assistant"
+                  title="Room memory assistant"
                 >
                   <Sparkles size={17} />
                 </button>
@@ -729,7 +729,7 @@ export default function RoomPage() {
                         ? "bg-emerald-600 text-white"
                         : "bg-background text-muted-foreground hover:bg-muted"
                     }`}
-                    title={aiEnabled ? "Pause AI memory" : "Enable AI memory"}
+                    title={aiEnabled ? "Pause automatic memory" : "Enable automatic memory"}
                   >
                     <Bot size={17} />
                   </button>
@@ -794,8 +794,9 @@ export default function RoomPage() {
 
                 return (
                   <div
+                    id={`message-${msg.id}`}
                     key={`${msg.id}-${index}`}
-                    className={`flex gap-3 py-1 ${
+                    className={`scroll-mt-24 flex gap-3 py-1 ${
                       mine ? "justify-end" : "justify-start"
                     }`}
                   >
@@ -1148,7 +1149,7 @@ export default function RoomPage() {
             setIsTasksOpen(false);
           }}
           className="h-11 w-11 rounded-lg border border-border bg-background shadow-lg flex items-center justify-center"
-          title="AI memory"
+          title="Automatic memory"
         >
           <Sparkles size={18} />
         </button>

@@ -135,6 +135,41 @@ async def reinforce_memory(
         await db.commit()
     return memory
 
+
+async def update_memory(
+    db: AsyncSession,
+    room_id: int,
+    memory_id: int,
+    content: str | None = None,
+    embedding: list[float] | None = None,
+    importance_score: int | None = None,
+    tags: list[str] | None = None,
+):
+    query = select(RoomMemory).where(
+        RoomMemory.id == memory_id,
+        RoomMemory.room_id == room_id
+    )
+    result = await db.execute(query)
+    memory = result.scalars().first()
+
+    if not memory:
+        return None
+
+    if content is not None:
+        memory.content = content
+        memory.last_reinforced_at = datetime.utcnow()
+        memory.confidence_score = 1.0
+    if embedding is not None:
+        memory.embedding = embedding
+    if importance_score is not None:
+        memory.importance_score = importance_score
+    if tags is not None:
+        memory.tags = tags
+
+    await db.flush()
+    await db.refresh(memory)
+    return memory
+
 async def delete_memory(
     db: AsyncSession,
     room_id: int,

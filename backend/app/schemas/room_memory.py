@@ -21,6 +21,17 @@ class RoomMemoryCreate(
     tags: list[str] = []
 
 
+class RoomMemoryUpdate(
+    BaseModel
+):
+
+    content: str | None = None
+
+    importance_score: int | None = None
+
+    tags: list[str] | None = None
+
+
 class RoomMemoryResponse(
     BaseModel
 ):
